@@ -2,20 +2,49 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Digitalizador de Firmas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DigiFiremas - Digitalización de Firmas</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <h1>Digitalizador de Firma</h1>
-    <canvas id="signature-canvas" width="500" height="200"></canvas>
-    <br>
-    <button onclick="clearCanvas()">Borrar</button>
-    <button onclick="saveSignature()">Guardar Firma</button>
-    <form id="uploadForm" enctype="multipart/form-data">
-    <input type="file" name="signatureImage" accept="image/*">
-    <button type="submit">Subir Firma</button>
-</form>
+    <div class="container">
+        <header class="header">
+            <h1>DigiFiremas</h1>
+            <p class="subtitle">Digitalización Profesional de Firmas</p>
+        </header>
 
+        <main class="main-content">
+            <section class="signature-section">
+                <h2>Crear tu Firma Digital</h2>
+                <p class="instruction">Dibuja tu firma en el área de abajo usando el mouse o pantalla táctil</p>
+                
+                <div class="canvas-container">
+                    <canvas id="signature-canvas" width="600" height="250"></canvas>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-clear" onclick="clearCanvas()">Borrar</button>
+                    <button class="btn btn-save" onclick="saveSignature()">Guardar Firma</button>
+                </div>
+
+                <div class="status-message" id="statusMessage"></div>
+            </section>
+
+            <section class="upload-section">
+                <h3>¿Ya tienes una firma digital?</h3>
+                <p>Sube tu imagen de firma existente</p>
+                
+                <form id="uploadForm" enctype="multipart/form-data" class="upload-form">
+                    <input type="file" name="signatureImage" accept="image/*" id="fileInput">
+                    <button type="submit" class="btn btn-upload">Subir Firma</button>
+                </form>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2025 DigiFiremas - Sebastián Riquelme, Bryan Zapata, Débora Vizama</p>
+        </footer>
+    </div>
 
     <script src="{{ url_for('static', filename='js/signature.js') }}"></script>
 </body>
