@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Usuario</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <h1>Bienvenido, {{ username }}</h1>
+
+    <h2>Tus Firmas</h2>
+    <ul>
+        {% for firma in firmas %}
+            <li><img src="{{ url_for('static', filename='uploads/firmas/' + firma) }}" alt="Firma" width="200"></li>
+        {% else %}
+            <li>No tienes firmas registradas aún.</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Opciones</h2>
+    <ul>
+        <li><a href="/">Ir al Digitalizador</a></li>
+        <li><a href="/logout">Cerrar sesión</a></li>
+    </ul>
+</body>
+</html>

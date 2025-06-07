@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Digitalizador de Firmas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <h1>Digitalizador de Firma</h1>
+    <canvas id="signature-canvas" width="500" height="200"></canvas>
+    <br>
+    <button onclick="clearCanvas()">Borrar</button>
+    <button onclick="saveSignature()">Guardar Firma</button>
+    <form id="uploadForm" enctype="multipart/form-data">
+    <input type="file" name="signatureImage" accept="image/*">
+    <button type="submit">Subir Firma</button>
+</form>
+<form action="/upload_document" method="POST" enctype="multipart/form-data">
+    <input type="file" name="document" accept=".pdf,.doc,.docx">
+    <button type="submit">Subir Documento</button>
+</form>
+
+
+
+    <script src="{{ url_for('static', filename='js/signature.js') }}"></script>
+</body>
+</html>
