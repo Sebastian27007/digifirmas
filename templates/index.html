@@ -9,8 +9,8 @@
     <h1>Digitalizador de Firma</h1>
     <canvas id="signature-canvas" width="500" height="200"></canvas>
     <br>
-    <button onclick="clearCanvas()">Borrar</button>
-    <button onclick="saveSignature()">Guardar Firma</button>
+    <button id="clear-btn">Borrar</button>
+    <button id="save-btn">Guardar Firma</button>
     <form id="uploadForm" enctype="multipart/form-data">
     <input type="file" name="signatureImage" accept="image/*">
     <button type="submit">Subir Firma</button>
