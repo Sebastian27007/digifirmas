@@ -1,1 +1,4 @@
 Flask
+gunicorn
+flask_login
+supabase
