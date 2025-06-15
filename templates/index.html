@@ -7,15 +7,26 @@
 </head>
 <body>
     <h1>Digitalizador de Firma</h1>
+
+    <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; background-color: #f9f9f9;">
+        <label for="document-input" style="font-weight: bold;">Paso 1: Sube el documento a firmar (PDF o Imagen)</label>
+        <br>
+        <input type="file" id="document-input" accept=".pdf,image/*">
+    </div>
+
+    <label style="font-weight: bold;">Paso 2: Dibuja o carga tu firma</label>
     <canvas id="signature-canvas" width="500" height="200"></canvas>
     <br>
+    
     <button id="clear-btn">Borrar Dibujo</button>
     <button id="prepare-canvas-btn">Usar Firma Dibujada</button>
     <button id="download-btn">Descargar como Imagen</button>
     <hr>
+
     <label for="file-input">O selecciona un archivo de firma:</label>
     <input type="file" id="file-input" accept="image/*">
     <hr>
+
     <button id="final-upload-btn">Subir Firma al Servidor</button>
     <p><small id="status-text">Estado: Esperando firma...</small></p>
 
