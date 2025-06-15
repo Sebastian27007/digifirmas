@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
         statusText.textContent = 'Subiendo documento y firma...';
         console.log("Enviando al backend:", { documentFile, signatureFile: signatureToUpload });
 
-        fetch('/upload_signature', {
+        fetch('/upload_document', {
             method: 'POST',
             body: formData,
         })
