@@ -1,1 +1,7 @@
 Flask
+<<<<<<< HEAD
+=======
+gunicorn
+flask_login
+supabase
+>>>>>>> main

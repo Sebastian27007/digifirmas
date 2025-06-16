@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+<<<<<<< HEAD
     <title>Digitalizador de Firmas</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
@@ -32,5 +33,154 @@
 
 
     <script src="{{ url_for('static', filename='js/signature.js') }}"></script>
+=======
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DigiFiremas - Digitalización de Firmas</title>
+    
+    <!-- CSS principal -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts para mejor tipografía -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Meta tags adicionales -->
+    <meta name="description" content="DigiFiremas - Herramienta profesional para digitalización de firmas">
+    <meta name="keywords" content="firma digital, digitalización, canvas, upload">
+    <meta name="author" content="Sebastián Riquelme, Bryan Zapata, Débora Vizama">
+</head>
+<body>
+    <div class="container">
+        <header class="header animate-on-scroll">
+            <h1><i class="fas fa-signature"></i> DigiFiremas</h1>
+            <p class="subtitle">Digitalización Profesional de Firmas</p>
+        </header>
+
+        <main class="main-content">
+            <section class="signature-section animate-on-scroll interactive-element">
+                <h2><i class="fas fa-paint-brush"></i> Crear tu Firma Digital</h2>
+                <p class="instruction">
+                    <i class="fas fa-lightbulb"></i>
+                    Dibuja tu firma en el área de abajo usando el mouse o pantalla táctil
+                </p>
+                
+                <div class="canvas-container">
+                    <canvas id="signature-canvas" width="600" height="250" tabindex="0"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <button class="btn btn-clear" onclick="clearCanvas()" tabindex="0">
+                        <i class="fas fa-trash-alt"></i>
+                        Borrar
+                    </button>
+                    <button class="btn btn-save" onclick="saveSignature()" tabindex="0">
+                        <i class="fas fa-save"></i>
+                        Guardar Firma
+                    </button>
+                </div>
+                
+                <div class="status-message" id="statusMessage" role="alert"></div>
+            </section>
+
+            <!-- Divisor visual -->
+            <div class="section-divider"></div>
+
+            <section class="upload-section animate-on-scroll interactive-element">
+                <h3><i class="fas fa-upload"></i> ¿Ya tienes una firma digital?</h3>
+                <p>Sube tu imagen de firma existente</p>
+                
+                <form id="uploadForm" enctype="multipart/form-data" class="upload-form">
+                    <div class="file-input-container">
+                        <input type="file" name="signatureImage" accept="image/*" id="fileInput" tabindex="0">
+                        <label for="fileInput" class="file-input-label">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            Seleccionar archivo
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-upload" tabindex="0">
+                        <i class="fas fa-arrow-circle-up"></i>
+                        Subir Firma
+                    </button>
+                </form>
+            </section>
+        </main>
+
+        <footer class="footer animate-on-scroll">
+            <p>
+                <i class="fas fa-users"></i>
+                &copy; 2025 DigiFiremas - Sebastián Riquelme, Bryan Zapata, Débora Vizama
+            </p>
+        </footer>
+    </div>
+
+    <!-- JavaScript principal -->
+    <script src="{{ url_for('static', filename='js/signature.js') }}"></script>
+    
+    <!-- Script adicional para animaciones -->
+    <script>
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const animatedElements = document.querySelectorAll('.animate-on-scroll');
+            animatedElements.forEach(el => observer.observe(el));
+
+            const canvas = document.getElementById('signature-canvas');
+            if (canvas) {
+                canvas.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        canvas.focus();
+                    }
+                });
+            }
+
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('mouseenter', () => {
+                    btn.style.transform = 'translateY(-3px) scale(1.05)';
+                });
+                
+                btn.addEventListener('mouseleave', () => {
+                    btn.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+
+            const saveBtn = document.querySelector('.btn-save');
+            const uploadBtn = document.querySelector('.btn-upload');
+            
+            if (saveBtn) {
+                saveBtn.addEventListener('click', () => {
+                    saveBtn.classList.add('loading');
+                    setTimeout(() => {
+                        saveBtn.classList.remove('loading');
+                    }, 2000);
+                });
+            }
+
+            if (uploadBtn) {
+                uploadBtn.addEventListener('click', () => {
+                    uploadBtn.classList.add('loading');
+                    setTimeout(() => {
+                        uploadBtn.classList.remove('loading');
+                    }, 2000);
+                });
+            }
+        });
+    </script>
+>>>>>>> main
 </body>
 </html>
