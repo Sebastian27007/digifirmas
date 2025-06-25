@@ -2,25 +2,74 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Usuario</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
 </head>
 <body>
-    <h1>Bienvenido, {{ username }}</h1>
+    <div class="main-container"> 
+        <h1 class="page-title">Bienvenido, {{ username }}</h1>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="message">
+                    {% for message in messages %}
+                        <p>{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
 
-    <h2>Tus Firmas</h2>
-    <ul>
-        {% for firma in firmas %}
-            <li><img src="{{ url_for('static', filename='uploads/firmas/' + firma) }}" alt="Firma" width="200"></li>
+        <h2 class="section-title">Tus Documentos Firmados</h2>
+        {% if documentos %}
+            <div class="table-responsive"> {# Contenedor para la tabla responsiva #}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre del Documento</th>
+                            <th>Fecha de Firma</th>
+                            <th>ID Único</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in documentos %}
+                        <tr>
+                            <td>{{ doc.nombre }}</td>
+                            <td>{{ doc.fecha_formateada }}</td>
+                            <td>{{ doc.id_unico }}</td>
+                            <td>
+                                <a href="{{ doc.ruta_descarga }}" download class="btn btn-download">
+                                    Descargar PDF
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         {% else %}
-            <li>No tienes firmas registradas aún.</li>
-        {% endfor %}
-    </ul>
+            <p class="no-documents-message">No tienes documentos firmados aún.</p>
+        {% endif %}
 
-    <h2>Opciones</h2>
-    <ul>
-        <li><a href="/">Ir al Digitalizador</a></li>
-        <li><a href="/logout">Cerrar sesión</a></li>
-    </ul>
+        <h2 class="section-title">Opciones Rápidas</h2>
+        <ul class="options-list">
+            <li>
+                <a href="/" class="btn btn-primary">
+                    Ir al Digitalizador
+                </a>
+            </li>
+            <li>
+                <a href="/logout" class="btn btn-secondary">
+                    Cerrar sesión
+                </a>
+            </li>
+        </ul>
+    </div>
 </body>
 </html>
+
+
+
