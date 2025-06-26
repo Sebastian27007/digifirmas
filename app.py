@@ -1,7 +1,8 @@
 import os
 import uuid
 import base64 # Importado desde main, puede ser útil
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+import datetime #importado para formatear fechas
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_file
 from werkzeug.utils import secure_filename
 
 # Imports adicionales para el manejo de PDFs e imágenes
@@ -430,11 +431,15 @@ def mis_documentos():
                     fecha_creacion = os.path.getctime(
                         os.path.join(app.config['UPLOAD_FOLDER'], archivo)
                     )
-                    
+                    #Formatear la marca de tiempo para mostrarla
+                    fecha_dt_object = datetime.datetime.fromtimestamp(fecha_creacion)
+                    fecha_formateada = fecha_dt_object.strftime('%Y-%m-%d %H:%M') # Ejemplo: '2025-06-24 14:30'
+                
                     documentos_firmados.append({
                         'nombre': archivo,
                         'id_unico': unique_id,
                         'fecha': fecha_creacion,
+                        'fecha_formateada': fecha_formateada, # Formateado para mostrar
                         'ruta_descarga': f'/descargar/{archivo}'
                     })
         
