@@ -2,25 +2,219 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Panel de Usuario</title>
+    <title>Panel de Usuario - Firmar Documento</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Estilos específicos para el dashboard */
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        @media (min-width: 768px) {
+            .dashboard-container {
+                grid-template-columns: 1fr 2fr; /* Firmas a la izquierda, documento a la derecha */
+            }
+        }
+
+        .saved-signatures-section, .document-signing-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: var(--shadow-medium);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeInUp 0.8s ease-out; /* Puedes ajustar las animaciones */
+        }
+
+        .saved-signatures-section h2, .document-signing-section h2 {
+            text-align: center;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+        .saved-signatures-section h2::before { content: '✨'; margin-right: 10px; }
+        .document-signing-section h2::before { content: '🖋️'; margin-right: 10px; }
+
+
+        .signature-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .signature-item {
+            border: 2px solid transparent;
+            border-radius: 10px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .signature-item:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-light);
+        }
+
+        .signature-item.selected {
+            border-color: var(--success-color);
+            box-shadow: 0 0 0 3px var(--success-color);
+            background-color: rgba(76, 175, 80, 0.05);
+        }
+
+        .signature-item img {
+            max-width: 120px;
+            height: auto;
+            display: block;
+            margin: 0 auto 10px auto;
+            border-radius: 5px;
+            background-color: #f8f8f8; /* Para que las PNGs transparentes se vean mejor */
+            padding: 5px;
+        }
+
+        .document-upload-area {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        #document-preview-container {
+            border: 2px dashed #ccc;
+            border-radius: 15px;
+            min-height: 400px;
+            max-height: 700px; /* Para controlar el tamaño si el documento es grande */
+            overflow: auto;
+            position: relative; /* Esencial para posicionar la firma */
+            margin: 20px auto;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #document-preview-container img.document-img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        #signature-to-apply {
+            position: absolute;
+            cursor: grab;
+            display: none; /* Se mostrará cuando se seleccione una firma */
+            max-width: 150px; /* Tamaño inicial de la firma */
+            height: auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            border: 2px dashed var(--accent-color);
+            transition: border-color 0.2s ease;
+            z-index: 10; /* Para que esté por encima del documento */
+        }
+        #signature-to-apply:active {
+            cursor: grabbing;
+        }
+
+        .btn-dashboard {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all var(--animation-speed) cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            min-width: 140px;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: var(--shadow-light);
+            margin: 10px;
+        }
+        .btn-dashboard:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: var(--shadow-heavy);
+        }
+        .btn-dashboard::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+        .btn-dashboard:hover::before {
+            left: 100%;
+        }
+
+        #dashboard-status-text {
+            text-align: center;
+            margin-top: 20px;
+            font-weight: 500;
+            color: #555;
+        }
+    </style>
 </head>
 <body>
-    <h1>Bienvenido, {{ username }}</h1>
+    <div class="container">
+        <header class="header">
+            <h1>Bienvenido, {{ username }}</h1>
+            <p class="subtitle">Panel de Control de Firmas y Documentos</p>
+            <nav class="options-nav">
+                <a href="{{ url_for('index') }}" class="btn btn-upload">✍️ Digitalizar Nueva Firma</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-clear">🔒 Cerrar sesión</a>
+            </nav>
+        </header>
 
-    <h2>Tus Firmas</h2>
-    <ul>
-        {% for firma in firmas %}
-            <li><img src="{{ url_for('static', filename='uploads/firmas/' + firma) }}" alt="Firma" width="200"></li>
-        {% else %}
-            <li>No tienes firmas registradas aún.</li>
-        {% endfor %}
-    </ul>
+        <div class="dashboard-container">
+            <section class="saved-signatures-section">
+                <h2>Tus Firmas Guardadas</h2>
+                <p class="instruction">Selecciona una firma para usarla en un documento:</p>
+                <div class="signature-list">
+                    {% for firma_url in firmas %}
+                        <div class="signature-item" data-signature-url="{{ firma_url }}">
+                            <img src="{{ firma_url }}" alt="Firma Guardada">
+                            <span>Firma {{ loop.index }}</span>
+                        </div>
+                    {% else %}
+                        <p>No tienes firmas registradas aún. Ve a <a href="{{ url_for('index') }}">Digitalizador</a> para crear una.</p>
+                    {% endfor %}
+                </div>
+                <div id="dashboard-status-text" class="status-message"></div>
+            </section>
 
-    <h2>Opciones</h2>
-    <ul>
-        <li><a href="/">Ir al Digitalizador</a></li>
-        <li><a href="/logout">Cerrar sesión</a></li>
-    </ul>
+            <section class="document-signing-section">
+                <h2>Firmar un Documento Existente</h2>
+                <p class="instruction">1. Carga un documento (imagen o PDF), 2. Selecciona tu firma a la izquierda y arrástrala.</p>
+                
+                <div class="document-upload-area">
+                    <input type="file" id="document-to-sign-input" accept=".pdf,image/*" class="btn-dashboard">
+                    <button id="load-document-btn" class="btn-dashboard">Cargar Documento</button>
+                    <button id="save-signed-document-btn" class="btn-dashboard" style="display:none;">✅ Guardar Documento Firmado</button>
+                </div>
+
+                <div id="document-preview-container">
+                    <p>Carga un documento para previsualizarlo aquí.</p>
+                    <img id="signature-to-apply" src="" alt="Firma a aplicar">
+                </div>
+            </section>
+        </div>
+
+        <footer class="footer">
+            <p>&copy; 2025 Digitalizador de Firmas. Todos los derechos reservados.</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard-logic.js') }}"></script>
 </body>
 </html>
