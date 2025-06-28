@@ -1,12 +1,19 @@
 import os
 import uuid
+import json
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
-from PIL import Image # NECESARIO: pip install Pillow
-import io # Para manejar streams de bytes
+from werkzeug.security import generate_password_hash, check_password_hash
+from PIL import Image
+import io
+import fitz
+from supabase import create_client, Client
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'secreto_super_seguro'  # Esencial para las sesiones
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'secreto_super_seguro')
 
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -17,73 +24,208 @@ app.config['SIGNED_DOCUMENTS_SUBFOLDER'] = os.path.join(UPLOAD_FOLDER, 'document
 os.makedirs(app.config['SIGNATURES_SUBFOLDER'], exist_ok=True)
 os.makedirs(app.config['SIGNED_DOCUMENTS_SUBFOLDER'], exist_ok=True)
 
-# Base de datos temporal de usuarios (en memoria)
-usuarios = {
-    "admin": {"password": "admin123", "email": "admin@mail.com", "firmas_guardadas": []}
-}
+USERS_DB_FILE = 'users_db.json'
 
-# --- RUTAS DE AUTENTICACIÓN ---
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://lbfglpcrjpmfzqsstpvq.supabase.co")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxiZmdscGNyanBtZnpxc3RwdnFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5NDI0MTQsImV4cCI6MjA2NTUxODQxNH0.axZx5twseKImim4lxQKyRTcgDHhaT02927FwqTt2ZB0")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+def load_users():
+    if os.path.exists(USERS_DB_FILE):
+        with open(USERS_DB_FILE, 'r') as f:
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                print(f"Advertencia: El archivo {USERS_DB_FILE} está vacío o corrupto. Se iniciará con un diccionario vacío.")
+                return {}
+    return {}
+
+def save_users(users_data):
+    with open(USERS_DB_FILE, 'w') as f:
+        json.dump(users_data, f, indent=4)
+
+usuarios = load_users()
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
+
+        global usuarios
+        usuarios = load_users()
+
         if username in usuarios:
-            flash("El usuario ya existe.")
-        else:
-            usuarios[username] = {'password': password, 'email': email, 'firmas_guardadas': []} # Inicializar firmas
-            flash("Registro exitoso. Ahora inicia sesión.")
-            return redirect(url_for('login'))
+            flash("El nombre de usuario ya existe localmente.")
+            return render_template('register.html')
+        
+        for user_data in usuarios.values():
+            if user_data.get('email') == email:
+                flash("El correo electrónico ya está registrado localmente.")
+                return render_template('register.html')
+
+        try:
+            # 1. Intentar registrar el usuario en Supabase Auth
+            user_response = supabase.auth.sign_up({"email": email, "password": password})
+            user = user_response.user
+            error = user_response.session # Supabase devuelve el error aquí si no hay user
+
+            if user:
+                print(f"Usuario registrado en Supabase Auth: {user.id}")
+
+                # 2. Guardar el usuario en la base de datos JSON local
+                hashed_password = generate_password_hash(password)
+                usuarios[username] = {
+                    'password': hashed_password,
+                    'email': email,
+                    'firmas_guardadas': [],
+                    'supabase_id': user.id
+                }
+                save_users(usuarios)
+                print(f"Usuario guardado localmente: {username}")
+
+                # 3. Insertar el perfil del usuario en la tabla 'usuarios' de Supabase
+                # Asegúrate de que la tabla 'public.usuarios' exista en Supabase
+                # con columnas 'id', 'username', 'email' y 'created_at'.
+                # La columna 'id' debe ser el user.id de Supabase Auth.
+                try:
+                    response_db = supabase.from_('usuarios').insert({
+                        'id': user.id,
+                        'username': username,
+                        'email': email
+                    }).execute()
+                    data = response_db.data
+                    count = response_db.count
+                    print(f"Perfil de usuario insertado en tabla 'usuarios' de Supabase: {data}")
+                except Exception as db_error:
+                    print(f"Error al insertar perfil en tabla 'usuarios' de Supabase: {db_error}")
+                    flash(f"Registro exitoso en autenticación, pero error al guardar perfil: {str(db_error)}")
+                    # Considera revertir el registro de Supabase Auth si la inserción del perfil es crítica
+                    # o simplemente registrar el error y continuar.
+
+                flash("Registro exitoso. Ahora inicia sesión.")
+                return redirect(url_for('login'))
+            else:
+                print(f"Error de Supabase Auth: {error.message if error else 'Error desconocido'}")
+                flash(f"Error al registrar en Supabase: {error.message if error else 'Ocurrió un error desconocido durante el registro.'}")
+        except Exception as e:
+            print(f"Excepción inesperada durante el registro: {e}")
+            flash(f"Error inesperado durante el registro: {str(e)}")
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
+        email_or_username = request.form['email_or_username']
         password = request.form['password']
-        user = usuarios.get(username)
-        if user and user['password'] == password:
-            session['username'] = username
-            return redirect(url_for('index')) # Redirige al index (la página de firma)
-        else:
-            flash("Credenciales incorrectas.")
+
+        global usuarios
+        usuarios = load_users()
+
+        try:
+            user_response = supabase.auth.sign_in_with_password({"email": email_or_username, "password": password})
+            user = user_response.user
+            error = user_response.session
+
+            if user:
+                local_user_found = None
+                local_username = None
+                # Obtener el username de la tabla 'usuarios' de Supabase
+                try:
+                    response_user_data = supabase.from_('usuarios').select('username').eq('id', user.id).single().execute()
+                    user_data_from_db = response_user_data.data
+                    if user_data_from_db:
+                        local_username = user_data_from_db['username']
+                except Exception as db_error:
+                    print(f"Error al obtener username de Supabase: {db_error}")
+                    local_username = email_or_username # Fallback si no se encuentra en la tabla de usuarios
+
+                # Buscar usuario localmente (por compatibilidad)
+                for uname, udata in usuarios.items():
+                    if udata.get('supabase_id') == user.id or udata.get('email') == email_or_username:
+                        local_user_found = udata
+                        if not local_username: # Si no lo obtuvimos de Supabase, usar el local
+                            local_username = uname
+                        break
+                
+                if local_user_found:
+                    session['user_id'] = user.id
+                    session['username'] = local_username
+                    flash(f"Bienvenido, {local_username}!")
+                    return redirect(url_for('index'))
+                else:
+                    flash("Usuario autenticado en Supabase, pero no encontrado localmente. Contacta al administrador.")
+                    supabase.auth.sign_out()
+                    return render_template('login.html')
+            else:
+                flash(f"Credenciales incorrectas en Supabase: {error.message if error else 'Error desconocido'}")
+
+        except Exception as e:
+            print(f"Error inesperado durante el inicio de sesión con Supabase: {str(e)}")
+            user_data = usuarios.get(email_or_username)
+            if user_data and check_password_hash(user_data['password'], password):
+                session['username'] = email_or_username
+                session['user_id'] = user_data.get('supabase_id')
+                flash(f"Bienvenido, {email_or_username} (autenticación local)!")
+                return redirect(url_for('index'))
+            else:
+                flash("Credenciales incorrectas (local o Supabase).")
+
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
-    session.pop('username', None)
-    flash("Sesión cerrada correctamente.")
+    try:
+        supabase.auth.sign_out()
+        session.pop('username', None)
+        session.pop('user_id', None)
+        flash("Sesión cerrada correctamente.")
+    except Exception as e:
+        flash(f"Error al cerrar sesión de Supabase: {str(e)}")
     return redirect(url_for('login'))
 
-# --- RUTAS DE LA APLICACIÓN PRINCIPAL ---
-
-# Página principal (el digitalizador de firmas para GUARDAR firmas)
 @app.route('/')
 def index():
-    if 'username' not in session:
+    if 'user_id' not in session and 'username' not in session:
         flash("Por favor, inicia sesión para acceder a esta página.")
         return redirect(url_for('login'))
-    return render_template('index.html', username=session['username'])
+    return render_template('index.html', username=session.get('username', 'Usuario'))
 
-# Dashboard para listar firmas y firmar documentos existentes
 @app.route('/dashboard')
 def dashboard():
-    if 'username' not in session:
+    if 'user_id' not in session and 'username' not in session:
         flash("Por favor, inicia sesión para acceder al dashboard.")
         return redirect(url_for('login'))
     
-    username = session['username']
+    username = session.get('username', 'Usuario')
+    user_id = session.get('user_id')
+
+    global usuarios
+    usuarios = load_users()
+
     firmas_urls = []
-    for filename in usuarios[username].get('firmas_guardadas', []):
-        firmas_urls.append(url_for('uploaded_file', filename=f'firmas/{filename}'))
+    if username in usuarios and 'firmas_guardadas' in usuarios[username]:
+        for filename in usuarios[username]['firmas_guardadas']:
+            firmas_urls.append(url_for('uploaded_file', filename=f'firmas/{filename}'))
     
+    # Aquí podrías también cargar firmas desde Supabase si las tuvieras allí
+    if user_id:
+        try:
+            response_signatures = supabase.from_('user_signatures').select('filename').eq('supabase_user_id', user_id).execute()
+            signatures_from_db = response_signatures.data
+            if signatures_from_db:
+                for item in signatures_from_db:
+                    firmas_urls.append(url_for('uploaded_file', filename=f'firmas/{item["filename"]}'))
+        except Exception as e:
+            print(f"Error al cargar firmas desde Supabase: {e}")
+
     return render_template('dashboard.html', username=username, firmas=firmas_urls)
 
-# --- RUTA PARA GUARDAR FIRMAS INDIVIDUALMENTE (Para reutilización, desde index.html) ---
 @app.route('/upload_signature', methods=['POST'])
 def upload_signature():
-    if 'username' not in session:
+    if 'user_id' not in session:
         return jsonify({'error': 'Usuario no autenticado'}), 401
 
     if 'signature_file' not in request.files:
@@ -93,35 +235,44 @@ def upload_signature():
     if signature_file.filename == '':
         return jsonify({'error': 'No se seleccionó ningún archivo de firma'}), 400
 
-    username = session['username']
-    # Genera un ID único para cada firma, asociado al usuario
+    username = session.get('username', 'unknown_user')
+    user_id = session['user_id']
     unique_sig_id = str(uuid.uuid4().hex)[:12]
-    # El nombre de archivo será algo como "admin_123abc456def_mi_firma.png"
-    # Aseguramos un nombre de archivo seguro y único
     original_filename = secure_filename(signature_file.filename) if signature_file.filename else 'firma_dibujada.png'
     sig_filename = f"{username}_{unique_sig_id}_{original_filename}"
     sig_path = os.path.join(app.config['SIGNATURES_SUBFOLDER'], sig_filename)
 
     try:
         signature_file.save(sig_path)
-        # Añadir la firma a la lista del usuario en nuestra "BD" temporal
+        
+        global usuarios
+        usuarios = load_users()
         if username in usuarios:
             if 'firmas_guardadas' not in usuarios[username]:
                 usuarios[username]['firmas_guardadas'] = []
             usuarios[username]['firmas_guardadas'].append(sig_filename)
+            save_users(usuarios)
 
-        return jsonify({
-            'message': 'Firma guardada con éxito para reutilización',
-            'signature_url': url_for('uploaded_file', filename=f'firmas/{sig_filename}')
-        }), 200
+        response_insert_sig = supabase.from_('user_signatures').insert({
+            'supabase_user_id': user_id,
+            'filename': sig_filename,
+            'local_filepath': sig_path
+        }).execute()
+        data = response_insert_sig.data
+        count = response_insert_sig.count
+
+        if data:
+            return jsonify({
+                'message': 'Firma guardada con éxito para reutilización (local y Supabase)',
+                'signature_url': url_for('uploaded_file', filename=f'firmas/{sig_filename}')
+            }), 200
+        else:
+            return jsonify({'error': f'Firma guardada localmente, pero no se pudo registrar en Supabase: {count}'}), 500
+
     except Exception as e:
-        print(f"Error al guardar la firma: {e}") # Para depuración
+        print(f"Error al guardar la firma (local o Supabase): {e}")
         return jsonify({'error': f'Error al guardar la firma: {str(e)}'}), 500
 
-# --- RUTA ORIGINAL '/upload_document' (AHORA MÁS SIMPLE, SOLO GUARDA) ---
-# Esta ruta se mantiene, pero solo guarda el documento y la firma temporalmente.
-# La firma NO se añade a la lista de firmas reutilizables de usuarios aquí.
-# El usuario deberá ir al dashboard para firmar con una firma ya guardada.
 @app.route('/upload_document', methods=['POST'])
 def upload_document_from_index():
     if 'username' not in session:
@@ -137,14 +288,12 @@ def upload_document_from_index():
         return jsonify({'error': 'No se seleccionaron todos los archivos necesarios'}), 400
 
     username = session['username']
-    unique_id = str(uuid.uuid4().hex)[:8] # Un ID corto
+    unique_id = str(uuid.uuid4().hex)[:8]
     
-    # Guardar el documento
     doc_filename = f"{username}_{unique_id}_doc_{secure_filename(document.filename)}"
     doc_path = os.path.join(app.config['UPLOAD_FOLDER'], doc_filename)
     document.save(doc_path)
 
-    # Guardar la firma (se guarda en la carpeta principal de uploads, no en la de firmas reutilizables)
     sig_filename = f"{username}_{unique_id}_sig_{secure_filename(signature.filename or 'firma_dibujada.png')}"
     sig_path = os.path.join(app.config['UPLOAD_FOLDER'], sig_filename)
     signature.save(sig_path)
@@ -155,7 +304,6 @@ def upload_document_from_index():
         'signature_path': url_for('uploaded_file', filename=sig_filename)
     }), 200
 
-# --- RUTA PARA FIRMAR UN DOCUMENTO EXISTENTE (Desde dashboard.html) ---
 @app.route('/sign_existing_document', methods=['POST'])
 def sign_existing_document():
     if 'username' not in session:
@@ -176,8 +324,6 @@ def sign_existing_document():
     except ValueError as e:
         return jsonify({'error': f'Coordenadas o dimensiones inválidas: {str(e)}'}), 400
 
-    # Extraer el nombre de archivo de la firma de la URL
-    # Esto es crucial para acceder al archivo en la subcarpeta 'firmas'
     signature_filename = os.path.basename(signature_url) 
     signature_filepath = os.path.join(app.config['SIGNATURES_SUBFOLDER'], signature_filename)
 
@@ -216,7 +362,6 @@ def sign_existing_document():
 
         elif original_doc_filename.lower().endswith('.pdf'):
             try:
-                import fitz # PyMuPDF
                 doc = fitz.open(temp_doc_path)
                 if len(doc) == 0:
                     os.remove(temp_doc_path)
@@ -230,14 +375,14 @@ def sign_existing_document():
                 
                 rect_x0 = position_x
                 rect_y0 = position_y
-                rect_x1 = rect_x0 + signature_img.width
-                rect_y1 = rect_y0 + signature_img.height
+                rect_x1 = rect_x0 + signature_width
+                rect_y1 = rect_y0 + signature_height
                 
                 page_rect = page.rect
-                rect_x0 = max(0, min(rect_x0, page_rect.width - signature_img.width))
-                rect_y0 = max(0, min(rect_y0, page_rect.height - signature_img.height))
-                rect_x1 = rect_x0 + signature_img.width
-                rect_y1 = rect_y0 + signature_img.height
+                rect_x0 = max(0, min(rect_x0, page_rect.width - signature_width))
+                rect_y0 = max(0, min(rect_y0, page_rect.height - signature_height))
+                rect_x1 = rect_x0 + signature_width
+                rect_y1 = rect_y0 + signature_height
                 
                 rect = fitz.Rect(rect_x0, rect_y0, rect_x1, rect_y1)
                 
@@ -273,4 +418,6 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == '__main__':
+    if not os.path.exists(USERS_DB_FILE):
+        save_users({})
     app.run(debug=True)

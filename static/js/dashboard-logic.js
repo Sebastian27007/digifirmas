@@ -52,6 +52,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         currentDocumentFile = documentToSignInput.files[0];
+
+        // *** CORRECCIÓN: Asegurarse de que el archivo existe antes de acceder a sus propiedades ***
+        if (!currentDocumentFile) {
+            showStatus('No se pudo acceder al archivo del documento. Intenta de nuevo.', 'error');
+            return;
+        }
+        // **************************************************************************************
+
         const fileURL = URL.createObjectURL(currentDocumentFile);
 
         // Limpiar previsualización anterior y la firma flotante
@@ -70,8 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showStatus('Documento imagen cargado. Arrastra la firma a la posición deseada.', 'info');
 
         } else if (currentDocumentFile.type === 'application/pdf') {
-            // Para PDFs, usar un iframe es una solución sencilla pero limita la interactividad.
-            // Para incrustar directamente en el cliente, necesitarías PDF.js y un canvas.
             const iframe = document.createElement('iframe');
             iframe.src = fileURL;
             iframe.style.width = '100%';
@@ -84,11 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
             saveSignedDocumentBtn.style.display = 'inline-block';
             showStatus('Documento PDF cargado. Arrastra la firma. (La firma se aplicará en el servidor).', 'info');
             
-            // Advertencia: Posicionar la firma visualmente sobre un iframe no es exacto para el PDF real.
-            // Lo ideal sería renderizar el PDF a un canvas y luego superponer la firma en ese canvas.
-            // O, si es un PDF complejo, el usuario solo indicaría las coordenadas, y el backend haría el resto.
-            // Para este ejemplo, asumiremos que las coordenadas relativas del div son suficientes.
-
         } else {
             showStatus('Tipo de archivo no soportado para previsualización. Sube una imagen o PDF.', 'error');
             documentPreviewContainer.innerHTML = '<p>Tipo de archivo no soportado para previsualización.</p>';

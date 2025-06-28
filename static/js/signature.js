@@ -163,9 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- LÓGICA DEL BOTÓN FINAL DE SUBIDA (documento + firma temporal/recién preparada) ---
-    // Esta acción es para "subir el documento y la firma asociada en este momento",
-    // sin que la firma necesariamente se guarde en la lista de reutilizables
-    // a menos que el usuario haya hecho clic en "Guardar esta Firma" previamente.
     finalUploadButton.addEventListener('click', () => {
         // Validación de documento
         if (documentInput.files.length === 0) {
@@ -175,6 +172,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const documentFile = documentInput.files[0];
+        // *** CORRECCIÓN: Asegurarse de que el archivo existe antes de acceder a sus propiedades ***
+        if (!documentFile) {
+            statusText.textContent = 'Estado: No se pudo acceder al archivo del documento. Intenta de nuevo.';
+            statusText.classList.remove('success');
+            statusText.classList.add('error');
+            return;
+        }
+        // **************************************************************************************
+
         // Validación de firma: Se requiere una firma preparada (del canvas o de archivo)
         if (!signatureToUpload) {
             statusText.textContent = 'Estado: Paso 2: Por favor, dibuja o selecciona un archivo de firma.';
@@ -183,7 +190,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const documentFile = documentInput.files[0];
         const formData = new FormData();
         formData.append('document_file', documentFile);
         formData.append('signature_file', signatureToUpload, signatureToUpload.name || `firma-canvas-${Date.now()}.png`);
