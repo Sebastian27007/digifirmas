@@ -27,7 +27,11 @@ os.makedirs(app.config['SIGNED_DOCUMENTS_SUBFOLDER'], exist_ok=True)
 USERS_DB_FILE = 'users_db.json'
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://lbfglpcrjpmfzqsstpvq.supabase.co")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxiZmdscGNyanBtZnpxc3RwdnFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5NDI0MTQsImV4cCI6MjA2NTUxODQxNH0.axZx5twseKImim4lxQKyRTcgDHhaT02927FwqTt2ZB0")
+# Se actualizó la clave Supabase con la nueva clave proporcionada.
+# ADVERTENCIA: Para operaciones de escritura en el backend, la service_role key es más segura.
+# Si usas la anon public key, asegúrate de que tus políticas RLS en Supabase estén configuradas
+# para permitir las operaciones de inserción y selección para usuarios autenticados.
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "sb_publishable_9Z_xJ6AOutVeqF4TGehMyw_c6O9uxW9")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
