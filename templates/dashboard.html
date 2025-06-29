@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Usuario</title>
+    <title>Panel de Usuario - Documentos Firmados</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
 </head>
 <body>
-    <div class="main-container"> 
+    <div class="main-container"> {# Contenedor principal para el dashboard #}
         <h1 class="page-title">Bienvenido, {{ username }}</h1>
         {% with messages = get_flashed_messages() %}
             {% if messages %}
@@ -40,10 +40,16 @@
                             <td>{{ doc.nombre }}</td>
                             <td>{{ doc.fecha_formateada }}</td>
                             <td>{{ doc.id_unico }}</td>
-                            <td>
+                            <td class="action-buttons"> {# Clase para los botones de acción #}
+                                <a href="{{ doc.ruta_ver }}" target="_blank" class="btn btn-view">
+                                    Ver
+                                </a>
                                 <a href="{{ doc.ruta_descarga }}" download class="btn btn-download">
                                     Descargar PDF
                                 </a>
+                                <button onclick="eliminarDocumento('{{ doc.id_unico }}')" class="btn btn-delete">
+                                    Eliminar
+                                </button>                                
                             </td>
                         </tr>
                         {% endfor %}
@@ -68,5 +74,7 @@
             </li>
         </ul>
     </div>
+    <!-- ¡NUEVO! Enlace al archivo JavaScript específico del dashboard -->
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 </body>
 </html>

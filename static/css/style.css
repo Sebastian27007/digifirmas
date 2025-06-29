@@ -23,6 +23,12 @@
     --gradient-accent: linear-gradient(135deg, var(--accent-color) 0%, var(--success-color) 100%);
     --gradient-bg: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #43e97b 100%);
     --animation-speed: 0.4s;
+    --btn-view-color: #3b82f6; /* Azul */
+    --btn-view-hover-color: #2563eb; /* Azul más oscuro */
+    --btn-download-color: #4f46e5; /* Índigo */
+    --btn-download-hover-color: #4338ca; /* Índigo más oscuro */
+    --btn-delete-color: #ef4444; /* Rojo */
+    --btn-delete-hover-color: #dc2626; /* Rojo más oscuro */
 }
 
 /* Animaciones principales */
@@ -91,7 +97,7 @@
 
 /* Body con gradiente animado */
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Inter', sans-serif; /* Usamos Inter como solicitado */
     background: var(--gradient-bg);
     background-size: 400% 400%;
     animation: gradientShift 15s ease infinite;
@@ -304,10 +310,13 @@ body::before {
 }
 
 .btn {
-    padding: 15px 30px;
+    padding: 12px 25px; /* Ajustado para botones más compactos en la tabla */
     border: none;
-    border-radius: 50px;
-    font-size: 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: white; /* Color de texto blanco por defecto */
+    text-decoration: none; /* Asegura que los enlaces se vean como botones */
+    display: inline-block; /* Para que padding y margen funcionen correctamente en enlaces */
     cursor: pointer;
     font-weight: 600;
     transition: all var(--animation-speed) cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -585,4 +594,207 @@ body::before {
 .interactive-element:active {
     transform: translateY(0);
 
+}
+/* Contenedor principal para el dashboard */
+.main-container {
+    max-width: 900px; /* Ajustado para el dashboard */
+    margin: 40px auto; /* Centrado con margen vertical */
+    padding: 30px;
+    background-color: rgba(255, 255, 255, 0.95); /* Usamos un blanco con opacidad */
+    border-radius: 12px; /* Ligeramente más redondeado */
+    box-shadow: var(--shadow-medium); /* Sombra consistente */
+    border: 1px solid rgba(255, 255, 255, 0.2); /* Borde suave */
+    animation: fadeInUp 0.8s ease-out; /* Animación de entrada */
+    position: relative;
+    overflow: hidden;
+}
+/* Encabezados del Dashboard */
+.page-title, .section-title {
+    color: #4a4a4a; /* Color de texto más oscuro */
+    margin-bottom: 20px;
+    text-align: center;
+    background: var(--gradient-primary); /* Gradiente para el texto */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700; /* Más audaz */
+}
+
+.page-title {
+    font-size: 3rem; /* Tamaño grande para el título principal */
+}
+
+.section-title {
+    font-size: 2rem; /* Tamaño para los subtítulos de sección */
+    margin-top: 40px; /* Espacio superior */
+}
+/* Mensajes flash */
+.message {
+    background-color: #fff3cd; /* Amarillo claro */
+    color: #856404; /* Texto marrón oscuro */
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+    border: 1px solid #ffeeba;
+    animation: fadeInUp var(--animation-speed) ease;
+}
+/* Contenedor de tabla responsivo */
+.table-responsive {
+    overflow-x: auto; /* Permite desplazamiento horizontal en pantallas pequeñas */
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); /* Sombra sutil */
+    background-color: white; /* Fondo blanco para la tabla */
+}
+
+/* Estilos de la tabla */
+table {
+    width: 100%;
+    border-collapse: separate; /* Permite border-spacing */
+    border-spacing: 0;
+    min-width: 600px; /* Asegura que la tabla no se colapse demasiado en pantallas pequeñas */
+}
+
+th, td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0; /* Separador de filas */
+}
+th {
+    background-color: #e6e6fa; /* Morado claro para el encabezado */
+    color: #5b21b6; /* Texto morado oscuro */
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.9em;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9fb; /* Rayado para filas impares */
+}
+
+tr:hover {
+    background-color: #f0f0f5; /* Efecto hover en filas */
+}
+/* Mensaje de no documentos */
+.no-documents-message {
+    text-align: center;
+    color: #7f8c8d; /* Color de texto gris */
+    margin-top: 20px;
+    font-style: italic;
+}
+
+/* Lista de opciones (botones principales) */
+.options-list {
+    list-style: none;
+    padding: 0;
+    text-align: center;
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap; /* Permite que los elementos se envuelvan */
+    gap: 20px; /* Espacio entre los botones */
+}
+
+.options-list li {
+    display: inline-block; /* Opcional si ya usas flexbox en la lista */
+}
+/* Clase para los botones de acción en la tabla para darles espacio */
+.action-buttons .btn {
+    margin-right: 8px; /* Espacio entre botones en la misma fila */
+    margin-bottom: 5px; /* Pequeño espacio vertical si se envuelven */
+    padding: 10px 20px; /* Ajuste de padding para botones de tabla */
+    font-size: 0.85rem; /* Ajuste de tamaño de fuente para botones de tabla */
+    border-radius: 6px; /* Ligeramente menos redondeado para botones de tabla */
+}
+
+/* Eliminar el margen derecho del último botón en el grupo de acciones si es necesario */
+.action-buttons .btn:last-child {
+    margin-right: 0;
+}
+/* Estilos específicos para los botones de acción del dashboard */
+.btn-view {
+    background-color: var(--btn-view-color);
+    border: 1px solid var(--btn-view-color);
+}
+.btn-view:hover {
+    background-color: var(--btn-view-hover-color);
+    border-color: var(--btn-view-hover-color);
+}
+
+.btn-download {
+    background-color: var(--btn-download-color);
+    border: 1px solid var(--btn-download-color);
+}
+.btn-download:hover {
+    background-color: var(--btn-download-hover-color);
+    border-color: var(--btn-download-hover-color);
+}
+
+.btn-delete {
+    background-color: var(--btn-delete-color);
+    border: 1px solid var(--btn-delete-color);
+}
+.btn-delete:hover {
+    background-color: var(--btn-delete-hover-color);
+    border-color: var(--btn-delete-hover-color);
+}
+/* Estilos para los botones principales de la lista de opciones (ajustes) */
+/* Estos se aplicarán a los .btn-primary y .btn-secondary que ya tienes */
+.btn-primary {
+    background: var(--gradient-primary);
+}
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5c6bc0 0%, #512da8 100%); /* Un gradiente de hover personalizado */
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%); /* Un morado más claro para secundario */
+}
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+
+/* Responsive para el dashboard (AJUSTES A TUS MEDIA QUERIES EXISTENTES) */
+@media (max-width: 768px) {
+    .main-container {
+        margin: 20px auto;
+        padding: 15px;
+        border-radius: 10px;
+    }
+
+    .page-title {
+        font-size: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+    }
+
+    th, td {
+        padding: 10px;
+        font-size: 0.9em;
+    }
+
+    .action-buttons .btn {
+        display: block; /* Apilar botones de acción en móvil */
+        width: 100%;
+        margin-right: 0; /* Eliminar margen derecho */
+        margin-bottom: 10px; /* Más espacio vertical entre botones apilados */
+    }
+
+    .options-list {
+        flex-direction: column; /* Apilar botones de opciones en pantallas pequeñas */
+        align-items: center;
+        gap: 15px;
+    }
+
+    .options-list li {
+        width: 100%; /* Botones de opciones ocupan todo el ancho */
+    }
+
+    .options-list .btn {
+        width: 80%; /* Ancho de los botones grandes en móvil */
+        max-width: 250px;
+    }
 }

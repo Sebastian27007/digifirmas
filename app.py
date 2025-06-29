@@ -406,6 +406,84 @@ def descargar_archivo(filename):
         flash("Error al descargar el archivo.")
         return redirect(url_for('index'))
 
+# NUEVA RUTA: Visualizar documento
+@app.route('/ver_documento/<filename>')
+def ver_documento(filename):
+    """
+    Permite al usuario ver el PDF firmado directamente en el navegador.
+    """
+    if 'username' not in session:
+        flash("Por favor, inicia sesión para ver archivos.")
+        return redirect(url_for('login'))
+
+    try:
+        username = session['username']
+
+        # Aseguramos que el archivo pertenezca al usuario y sea un PDF firmado
+        if not filename.startswith(f"{username}_") or not filename.endswith('_documento_firmado.pdf'):
+            flash("No tienes permiso para ver este archivo o no es un documento firmado válido.")
+            return redirect(url_for('mis_documentos'))
+
+        ruta_archivo = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+        if not os.path.exists(ruta_archivo):
+            flash("El archivo solicitado no existe.")
+            return redirect(url_for('mis_documentos'))
+
+        # Envía el archivo para que sea visualizado en el navegador
+        return send_file(
+            ruta_archivo,
+            as_attachment=False, # Importante: False para visualizar, True para descargar
+            mimetype='application/pdf'
+        )
+
+    except Exception as e:
+        print(f"Error al ver documento: {str(e)}")
+        flash("Error al ver el documento.")
+        return redirect(url_for('mis_documentos'))
+
+# NUEVA RUTA: Eliminar documento
+@app.route('/eliminar_documento/<unique_id>', methods=['POST'])
+def eliminar_documento(unique_id):
+    """
+    Permite al usuario eliminar un documento firmado y sus archivos asociados.
+    """
+    if 'username' not in session:
+        return jsonify({'error': 'Usuario no autenticado'}), 401
+
+    username = session['username']
+    
+    try:
+        # Buscamos todos los archivos asociados con este unique_id y username
+        # Esto incluye el documento original, la firma y el PDF firmado.
+        archivos_asociados = encontrar_archivos_asociados(unique_id, username)
+        
+        archivos_a_eliminar = []
+        if archivos_asociados['documento']:
+            archivos_a_eliminar.append(archivos_asociados['documento'])
+        if archivos_asociados['firma']:
+            archivos_a_eliminar.append(archivos_asociados['firma'])
+        if archivos_asociados['documento_firmado']:
+            archivos_a_eliminar.append(archivos_asociados['documento_firmado'])
+
+        if not archivos_a_eliminar:
+            return jsonify({'error': 'Documento no encontrado o no autorizado para eliminar'}), 404
+
+        # Elimina cada archivo encontrado
+        for archivo_path in archivos_a_eliminar:
+            if os.path.exists(archivo_path): # Doble verificación por seguridad
+                os.remove(archivo_path)
+                print(f"Archivo eliminado: {archivo_path}")
+
+        flash("Documento y archivos asociados eliminados con éxito.")
+        return jsonify({'success': True, 'message': 'Documento eliminado.'}), 200
+
+    except Exception as e:
+        print(f"Error al eliminar documento: {str(e)}")
+        flash("Error al eliminar el documento.")
+        return jsonify({'error': f'Error interno del servidor: {str(e)}'}), 500
+
+
 # También agregar esta ruta para listar los documentos del usuario
 @app.route('/mis_documentos')
 def mis_documentos():
@@ -440,7 +518,9 @@ def mis_documentos():
                         'id_unico': unique_id,
                         'fecha': fecha_creacion,
                         'fecha_formateada': fecha_formateada, # Formateado para mostrar
-                        'ruta_descarga': f'/descargar/{archivo}'
+                        'ruta_descarga': f'/descargar/{archivo}',
+                        'ruta_ver': f'/ver_documento/{archivo}' #ruta para ver el documento
+
                     })
         
         # Ordenamos por fecha de creación (más recientes primero)
