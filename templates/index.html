@@ -36,6 +36,7 @@
             <section class="signature-section animate-on-scroll interactive-element">
                 <h2><i class="fas fa-paint-brush"></i> Paso 2: Proporciona tu Firma</h2>
                 
+                <p class="instruction">Dibuja en el recuadro para usar la firma al instante, o para guardarla en tu perfil.</p>
                 <div class="canvas-container">
                     <canvas id="signature-canvas" width="600" height="250"></canvas>
                 </div>
@@ -45,10 +46,17 @@
                         <i class="fas fa-trash-alt"></i> Borrar Dibujo
                     </button>
                     <button id="download-btn" class="btn">
-                        <i class="fas fa-download"></i> Descargar como Imagen
+                        <i class="fas fa-download"></i> Descargar
                     </button>
                     <button id="prepare-canvas-btn" class="btn btn-secondary">
                         <i class="fas fa-check"></i> Usar Firma Dibujada
+                    </button>
+                </div>
+                
+                <div class="controls" style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 15px;">
+                    <input type="text" id="new-signature-name" placeholder="Nombre para esta firma (ej: Completa)" class="text-input">
+                    <button id="save-new-signature-btn" class="btn btn-save">
+                        <i class="fas fa-save"></i> Guardar en mi Perfil
                     </button>
                 </div>
 
@@ -59,10 +67,19 @@
                      <div class="file-input-container">
                         <input type="file" id="file-input" accept="image/*">
                          <label for="file-input" class="file-input-label">
-                             <i class="fas fa-file-image"></i> Seleccionar archivo de firma
+                             <i class="fas fa-file-image"></i> Seleccionar archivo
                          </label>
                     </div>
                 </div>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <section class="saved-signatures-section animate-on-scroll">
+                <h3><i class="fas fa-folder-open"></i> O Elige una de tus Firmas Guardadas</h3>
+                <div id="saved-signatures-list" class="signatures-gallery">
+                    </div>
+                <p class="instruction">Haz clic en una firma para prepararla para la subida.</p>
             </section>
 
             <div class="section-divider"></div>
@@ -83,7 +100,7 @@
 
     <script src="{{ url_for('static', filename='js/signature.js') }}"></script>
     <script>
-        // Script de animaciones de la rama main (se conserva)
+        // Script de animaciones
         document.addEventListener('DOMContentLoaded', () => {
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
