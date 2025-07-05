@@ -18,6 +18,19 @@
         <header class="header animate-on-scroll">
             <h1><i class="fas fa-signature"></i> DigiFiremas</h1>
             <p class="subtitle">Digitalización Profesional de Firmas</p>
+            {# ¡NUEVO BLOQUE! Información del usuario y acciones de navegación #}
+            <div class="user-dashboard-nav">
+                <p class="user-greeting">Bienvenido, {{ username }}</p>
+                <div class="nav-buttons">
+                    <a href="/mis_documentos" class="btn btn-primary">
+                        <i class="fas fa-chart-line"></i> Ver mis Documentos
+                    </a>
+                    <a href="/logout" class="btn btn-secondary">
+                        <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+                    </a>
+                </div>
+            </div>
+            {# FIN NUEVO BLOQUE #}
         </header>
 
         <main class="main-content">
