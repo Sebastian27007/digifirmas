@@ -1,0 +1,26 @@
+{
+    "users": {
+        "admin": {
+            "password": "admin123"
+        }
+    },
+    "signatures": {
+        "bryan": [
+            {
+                "id": 1751491113363,
+                "name": "Principal",
+                "path": "bryan_Principal_1751491113.png"
+            },
+            {
+                "id": 1751492158951,
+                "name": "lololo",
+                "path": "bryan_lololo_1751492158.png"
+            },
+            {
+                "id": 1751502834989,
+                "name": "a",
+                "path": "bryan_a_1751502834.png"
+            }
+        ]
+    }
+}

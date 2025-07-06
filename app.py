@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 app.secret_key = 'secreto_super_seguro'
 
-UPLOAD_FOLDER = 'uploads' 
+UPLOAD_FOLDER = 'static/uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -117,7 +117,7 @@ def save_new_signature():
     new_sig = {
         'id': int(time.time() * 1000), # Usamos el tiempo como un ID único y simple
         'name': name,
-        'path': f"/uploads/{filename}" # Guardamos la ruta para que el frontend la pueda usar
+        'path': filename # Guardamos la ruta para que el frontend la pueda usar
     }
 
     # Añadir la firma a la lista del usuario en nuestra "base de datos"

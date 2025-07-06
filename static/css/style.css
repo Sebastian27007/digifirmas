@@ -586,3 +586,50 @@ body::before {
     transform: translateY(0);
 
 }
+
+/* --- Estilos para la Galería de Firmas --- */
+
+.signatures-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.signature-item {
+    border: 3px solid transparent; /* Borde transparente por defecto */
+    padding: 5px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    text-align: center;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.signature-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.signature-item img {
+    max-width: 150px;
+    height: auto;
+    display: block;
+}
+
+.signature-item span {
+    display: block;
+    margin-top: 5px;
+    font-size: 14px;
+    color: #333;
+}
+
+.signature-item.selected {
+    border-color: #007bff; /* Un borde azul brillante */
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.6);
+    transform: translateY(-5px) scale(1.05);
+}
