@@ -5,8 +5,9 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from supabase import create_client, Client
+from datetime import timedelta
 
-# --- NUEVO: Importaciones para la manipulación de PDF e imágenes ---
+# --- Importaciones para la manipulación de PDF e imágenes ---
 import fitz  # PyMuPDF
 from PIL import Image
 import io
@@ -16,6 +17,10 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'secreto_super_seguro_por_defecto')
+
+# Configuración para que la sesión sea más duradera
+app.permanent_session_lifetime = timedelta(minutes=60)
+
 
 # --- CONFIGURACIÓN DE CARPETA DE SUBIDAS ---
 UPLOAD_FOLDER = 'instance/uploads'
@@ -52,8 +57,6 @@ def register():
             flash("Registro exitoso. Revisa tu correo para verificar tu cuenta.", "success")
             return redirect(url_for('login'))
         except Exception as e:
-            # --- LÍNEA DE DEPURACIÓN AÑADIDA ---
-            # Esta línea imprimirá el error exacto en tu terminal.
             print(f"ERROR DETALLADO DE REGISTRO: {e}")
             flash(f"Error en el registro. Por favor, revisa los datos.", "error")
             return redirect(url_for('register'))
@@ -71,6 +74,7 @@ def login():
             session['access_token'] = data.session.access_token
             username = data.user.user_metadata.get('username', email)
             session['username'] = username
+            session.permanent = True
             return redirect(url_for('dashboard'))
         except Exception as e:
             print(f"ERROR DETALLADO DE LOGIN: {e}")
@@ -79,7 +83,7 @@ def login():
 
     return render_template('login.html')
 
-@app.route('/logout')
+@app.route('/logout', methods=['GET', 'POST'])
 def logout():
     session.clear()
     flash("Sesión cerrada correctamente.", "success")
@@ -117,7 +121,6 @@ def dashboard():
 
 
 # --- RUTAS DE SUBIDA Y FIRMA DE DOCUMENTOS ---
-
 @app.route('/upload_signature', methods=['POST'])
 def upload_signature():
     if 'user' not in session:
@@ -175,11 +178,16 @@ def sign_existing_document():
     pos_y_str = request.form.get('position_y', '0px').replace('px', '')
     sig_width_str = request.form.get('signature_width', '150px').replace('px', '')
     
+    preview_width_str = request.form.get('preview_width', '800')
+    preview_height_str = request.form.get('preview_height', '600')
+
     try:
         pos_x = float(pos_x_str)
         pos_y = float(pos_y_str)
         sig_width = int(float(sig_width_str))
-    except ValueError:
+        preview_width = float(preview_width_str)
+        preview_height = float(preview_height_str)
+    except (ValueError, TypeError):
         return jsonify({'error': 'Posición o tamaño de la firma inválidos'}), 400
 
     signature_filename = os.path.basename(signature_url)
@@ -190,47 +198,69 @@ def sign_existing_document():
 
     try:
         doc_stream = document_file.read()
+        output_filename = f"firmado_{secure_filename(document_file.filename)}"
         
         if document_file.mimetype == 'application/pdf':
             pdf_document = fitz.open(stream=doc_stream, filetype="pdf")
             page = pdf_document[0]
             
-            preview_width = 800 
-            scale_factor = page.rect.width / preview_width
+            page_width = page.rect.width
+            page_height = page.rect.height
+
+            # --- LÓGICA DE CÁLCULO MEJORADA ---
+            # Determina la escala real usada por el navegador para ajustar el PDF en el preview
+            scale = min(preview_width / page_width, preview_height / page_height)
+
+            # Calcula el tamaño del PDF renderizado en la pantalla
+            rendered_width = page_width * scale
+            rendered_height = page_height * scale
+
+            # Calcula el espacio vacío (letterboxing) alrededor del PDF
+            offset_x = (preview_width - rendered_width) / 2
+            offset_y = (preview_height - rendered_height) / 2
+
+            # Ajusta la posición del clic para que sea relativa al PDF renderizado, no al contenedor
+            relative_x = pos_x - offset_x
+            relative_y = pos_y - offset_y
+
+            # Convierte las coordenadas ajustadas de la pantalla a las coordenadas del PDF
+            pdf_x = relative_x / scale
+            pdf_y = relative_y / scale
             
-            scaled_x = pos_x * scale_factor
-            scaled_y = pos_y * scale_factor
-            scaled_sig_width = sig_width * scale_factor
+            # Convierte el ancho de la firma a las coordenadas del PDF
+            pdf_sig_width = sig_width / scale
             
             signature_image = Image.open(signature_path)
             aspect_ratio = signature_image.height / signature_image.width
-            scaled_sig_height = scaled_sig_width * aspect_ratio
+            pdf_sig_height = pdf_sig_width * aspect_ratio
             
-            sig_rect = fitz.Rect(scaled_x, scaled_y, scaled_x + scaled_sig_width, scaled_y + scaled_sig_height)
+            # Crea el rectángulo final en las coordenadas del PDF
+            sig_rect = fitz.Rect(pdf_x, pdf_y, pdf_x + pdf_sig_width, pdf_y + pdf_sig_height)
             
             page.insert_image(sig_rect, filename=signature_path)
             
-            output_filename = f"firmado_{secure_filename(document_file.filename)}"
             output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
             pdf_document.save(output_path)
             pdf_document.close()
 
         elif document_file.mimetype.startswith('image/'):
+            # La lógica para imágenes puede seguir un enfoque similar si es necesario
             doc_image = Image.open(io.BytesIO(doc_stream)).convert("RGBA")
             signature_image = Image.open(signature_path).convert("RGBA")
 
-            scale_factor = doc_image.width / 800
-            scaled_sig_width = int(sig_width * scale_factor)
+            scale_x = doc_image.width / preview_width
+            scale_y = doc_image.height / preview_height
+
+            scaled_sig_width = int(sig_width * scale_x)
             aspect_ratio = signature_image.height / signature_image.width
             scaled_sig_height = int(scaled_sig_width * aspect_ratio)
             signature_image = signature_image.resize((scaled_sig_width, scaled_sig_height))
             
-            scaled_x = int(pos_x * scale_factor)
-            scaled_y = int(pos_y * scale_factor)
+            scaled_x = int(pos_x * scale_x)
+            scaled_y = int(pos_y * scale_y)
 
             doc_image.paste(signature_image, (scaled_x, scaled_y), signature_image)
 
-            output_filename = f"firmado_{secure_filename(document_file.filename)}"
             output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
             doc_image.save(output_path, "PNG")
 

@@ -16,8 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Funciones de Utilidad ---
     function showStatus(message, type = 'info') {
-        dashboardStatusText.textContent = message;
-        dashboardStatusText.classList.remove('success', 'error', 'info');
+        // --- CORRECCIÓN: Usar innerHTML para renderizar el enlace de descarga ---
+        dashboardStatusText.innerHTML = message;
+        dashboardStatusText.className = 'status-message'; // Reset classes
         dashboardStatusText.classList.add(type);
         dashboardStatusText.style.display = 'block';
     }
@@ -29,16 +30,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 1. Selección de Firma ---
     signatureItems.forEach(item => {
         item.addEventListener('click', () => {
-            // Remover la clase 'selected' de todos los ítems
             signatureItems.forEach(sig => sig.classList.remove('selected'));
-            // Añadir la clase 'selected' al ítem clickeado
             item.classList.add('selected');
 
             selectedSignatureUrl = item.dataset.signatureUrl;
             signatureToApply.src = selectedSignatureUrl;
+            
+            // Mover la firma al contenedor de preview para que se pueda arrastrar sobre él
+            documentPreviewContainer.appendChild(signatureToApply);
             signatureToApply.style.display = 'block';
-            signatureToApply.style.left = '50px'; // Posición inicial
-            signatureToApply.style.top = '50px'; // Posición inicial
+            signatureToApply.style.left = '50px';
+            signatureToApply.style.top = '50px';
             
             showStatus('Firma seleccionada. Ahora carga un documento y arrástrala.', 'success');
         });
@@ -53,49 +55,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentDocumentFile = documentToSignInput.files[0];
 
-        // *** CORRECCIÓN: Asegurarse de que el archivo existe antes de acceder a sus propiedades ***
         if (!currentDocumentFile) {
             showStatus('No se pudo acceder al archivo del documento. Intenta de nuevo.', 'error');
             return;
         }
-        // **************************************************************************************
 
         const fileURL = URL.createObjectURL(currentDocumentFile);
-
-        // Limpiar previsualización anterior y la firma flotante
-        documentPreviewContainer.innerHTML = '<p>Carga un documento para previsualizarlo aquí.</p>';
-        signatureToApply.style.display = 'none'; // Ocultar hasta que se posicione sobre el nuevo doc
-        documentPreviewContainer.appendChild(signatureToApply); // Asegurarse de que la firma esté dentro del contenedor
+        documentPreviewContainer.innerHTML = ''; // Limpiar contenido anterior
+        
+        let previewElement;
 
         if (currentDocumentFile.type.startsWith('image/')) {
-            const img = document.createElement('img');
-            img.src = fileURL;
-            img.classList.add('document-img'); // Para aplicar estilos
-            documentPreviewContainer.innerHTML = ''; // Limpiar el párrafo
-            documentPreviewContainer.appendChild(img);
-            documentPreviewContainer.appendChild(signatureToApply); // Volver a añadir la firma por encima
-            saveSignedDocumentBtn.style.display = 'inline-block'; // Mostrar botón de guardar
+            previewElement = document.createElement('img');
+            previewElement.src = fileURL;
             showStatus('Documento imagen cargado. Arrastra la firma a la posición deseada.', 'info');
-
         } else if (currentDocumentFile.type === 'application/pdf') {
-            const iframe = document.createElement('iframe');
-            iframe.src = fileURL;
-            iframe.style.width = '100%';
-            iframe.style.height = '100%';
-            iframe.style.border = 'none';
-            documentPreviewContainer.innerHTML = '';
-            documentPreviewContainer.appendChild(iframe);
-            documentPreviewContainer.appendChild(signatureToApply); // Añadir la firma por encima del iframe
-
-            saveSignedDocumentBtn.style.display = 'inline-block';
-            showStatus('Documento PDF cargado. Arrastra la firma. (La firma se aplicará en el servidor).', 'info');
-            
+            previewElement = document.createElement('iframe');
+            previewElement.src = fileURL;
+            showStatus('Documento PDF cargado. Arrastra la firma.', 'info');
         } else {
             showStatus('Tipo de archivo no soportado para previsualización. Sube una imagen o PDF.', 'error');
             documentPreviewContainer.innerHTML = '<p>Tipo de archivo no soportado para previsualización.</p>';
-            saveSignedDocumentBtn.style.display = 'none';
             currentDocumentFile = null;
+            return;
         }
+        
+        previewElement.classList.add('document-preview-content');
+        documentPreviewContainer.appendChild(previewElement);
+        saveSignedDocumentBtn.style.display = 'inline-block';
     });
 
     // --- 3. Lógica de Arrastre de la Firma ---
@@ -107,80 +94,67 @@ document.addEventListener('DOMContentLoaded', () => {
         isDraggingSignature = true;
         signatureToApply.style.cursor = 'grabbing';
         
-        // Calcular el offset inicial del clic dentro de la imagen de la firma
         const rect = signatureToApply.getBoundingClientRect();
         signatureOffsetX = e.clientX - rect.left;
         signatureOffsetY = e.clientY - rect.top;
 
-        // Prevenir el comportamiento de arrastre predeterminado del navegador
         e.preventDefault(); 
     });
 
+    // Usar el contenedor del preview para el mousemove asegura que las coordenadas sean relativas a él
     documentPreviewContainer.addEventListener('mousemove', (e) => {
         if (!isDraggingSignature) return;
 
-        // Obtener las dimensiones del contenedor de previsualización
         const containerRect = documentPreviewContainer.getBoundingClientRect();
         
-        // Calcular las nuevas posiciones de la firma relativas al contenedor
         let newX = e.clientX - containerRect.left - signatureOffsetX;
         let newY = e.clientY - containerRect.top - signatureOffsetY;
 
-        // Limitar el arrastre para que la firma no salga del contenedor
         newX = Math.max(0, Math.min(newX, containerRect.width - signatureToApply.offsetWidth));
         newY = Math.max(0, Math.min(newY, containerRect.height - signatureToApply.offsetHeight));
 
         signatureToApply.style.left = `${newX}px`;
         signatureToApply.style.top = `${newY}px`;
     });
-
+    
+    // Escuchar el mouseup en todo el documento para soltar la firma en cualquier lugar
     document.addEventListener('mouseup', () => {
         if (isDraggingSignature) {
             isDraggingSignature = false;
             signatureToApply.style.cursor = 'grab';
-            showStatus('Firma posicionada. Puedes arrastrarla de nuevo o guardar el documento.', 'info');
         }
     });
 
     // --- 4. Guardar Documento Firmado ---
     saveSignedDocumentBtn.addEventListener('click', async () => {
-        if (!currentDocumentFile) {
-            showStatus('Primero carga un documento.', 'error');
+        if (!currentDocumentFile || !selectedSignatureUrl) {
+            showStatus('Carga un documento y selecciona una firma primero.', 'error');
             return;
-        }
-        if (!selectedSignatureUrl) {
-            showStatus('Primero selecciona una firma.', 'error');
-            return;
-        }
-        if (signatureToApply.style.display === 'none') {
-             showStatus('La firma no está visible. Arrastra la firma sobre el documento para posicionarla.', 'error');
-             return;
         }
 
         showStatus('Firmando y guardando documento...', 'info');
 
         const formData = new FormData();
         formData.append('document_file', currentDocumentFile);
-        formData.append('signature_url', selectedSignatureUrl); // La URL completa de la firma guardada
+        formData.append('signature_url', selectedSignatureUrl);
         
-        // Enviar las posiciones actuales de la firma (relativas al contenedor del preview)
-        // Y las dimensiones actuales de la firma tal como se muestra en el cliente
+        // --- CORRECCIÓN: Enviar las dimensiones del contenedor del preview al backend ---
         formData.append('position_x', signatureToApply.style.left);
         formData.append('position_y', signatureToApply.style.top);
         formData.append('signature_width', `${signatureToApply.offsetWidth}px`);
-        formData.append('signature_height', `${signatureToApply.offsetHeight}px`);
-
+        formData.append('preview_width', documentPreviewContainer.offsetWidth); // Ancho real del visor
+        formData.append('preview_height', documentPreviewContainer.offsetHeight); // Alto real del visor
 
         try {
-            const response = await fetch('/sign_existing_document', { // Nueva ruta en app.py
+            const response = await fetch('/sign_existing_document', {
                 method: 'POST',
                 body: formData,
             });
 
             const data = await response.json();
 
-            if (response.ok && data.message) {
-                showStatus(`¡Documento firmado! ${data.message}. Puedes descargarlo aquí: <a href="${data.file_path}" target="_blank">Descargar</a>`, 'success');
+            if (response.ok && data.file_path) {
+                showStatus(`¡Documento firmado con éxito! Puedes descargarlo aquí: <a href="${data.file_path}" target="_blank">Descargar</a>`, 'success');
                 // Limpiar la interfaz después de un éxito
                 currentDocumentFile = null;
                 selectedSignatureUrl = null;
@@ -188,7 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 documentPreviewContainer.innerHTML = '<p>Carga un documento para previsualizarlo aquí.</p>';
                 signatureToApply.style.display = 'none';
                 saveSignedDocumentBtn.style.display = 'none';
-                // Deseleccionar la firma en la lista
                 signatureItems.forEach(sig => sig.classList.remove('selected'));
 
             } else {

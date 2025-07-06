@@ -12,9 +12,9 @@
             gap: 30px;
         }
 
-        @media (min-width: 768px) {
+        @media (min-width: 992px) { /* Ajustado para tablets grandes y escritorios */
             .dashboard-container {
-                grid-template-columns: 1fr 2fr; /* Firmas a la izquierda, documento a la derecha */
+                grid-template-columns: 300px 1fr; /* Columna de firmas con ancho fijo */
             }
         }
 
@@ -25,7 +25,7 @@
             border-radius: 20px;
             box-shadow: var(--shadow-medium);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            animation: fadeInUp 0.8s ease-out; /* Puedes ajustar las animaciones */
+            animation: fadeInUp 0.8s ease-out;
         }
 
         .saved-signatures-section h2, .document-signing-section h2 {
@@ -77,7 +77,7 @@
             display: block;
             margin: 0 auto 10px auto;
             border-radius: 5px;
-            background-color: #f8f8f8; /* Para que las PNGs transparentes se vean mejor */
+            background-color: #f8f8f8;
             padding: 5px;
         }
 
@@ -89,33 +89,41 @@
         #document-preview-container {
             border: 2px dashed #ccc;
             border-radius: 15px;
-            min-height: 400px;
-            max-height: 700px; /* Para controlar el tamaño si el documento es grande */
-            overflow: auto;
-            position: relative; /* Esencial para posicionar la firma */
+            width: 100%;
+            min-height: 500px; 
+            height: 70vh;
+            position: relative; 
             margin: 20px auto;
             background-color: #f0f0f0;
             display: flex;
             justify-content: center;
             align-items: center;
+            overflow: hidden;
         }
 
-        #document-preview-container img.document-img {
-            max-width: 100%;
-            height: auto;
-            display: block;
+        #document-preview-container .document-preview-content {
+            width: 100%;
+            height: 100%;
+        }
+
+        #document-preview-container img.document-preview-content {
+            object-fit: scale-down;
+        }
+        
+        #document-preview-container iframe.document-preview-content {
+            border: none;
         }
 
         #signature-to-apply {
             position: absolute;
             cursor: grab;
-            display: none; /* Se mostrará cuando se seleccione una firma */
-            max-width: 150px; /* Tamaño inicial de la firma */
+            display: none; 
+            max-width: 150px; 
             height: auto;
             box-shadow: 0 0 10px rgba(0,0,0,0.3);
             border: 2px dashed var(--accent-color);
             transition: border-color 0.2s ease;
-            z-index: 10; /* Para que esté por encima del documento */
+            z-index: 10; 
         }
         #signature-to-apply:active {
             cursor: grabbing;
@@ -156,13 +164,16 @@
         .btn-dashboard:hover::before {
             left: 100%;
         }
-
-        #dashboard-status-text {
-            text-align: center;
-            margin-top: 20px;
-            font-weight: 500;
-            color: #555;
+        
+        #dashboard-status-text a {
+            color: white;
+            font-weight: bold;
+            text-decoration: underline;
         }
+         #dashboard-status-text a:hover {
+            text-decoration: none;
+        }
+
     </style>
 </head>
 <body>
@@ -172,7 +183,11 @@
             <p class="subtitle">Panel de Control de Firmas y Documentos</p>
             <nav class="options-nav">
                 <a href="{{ url_for('index') }}" class="btn btn-upload">✍️ Digitalizar Nueva Firma</a>
-                <a href="{{ url_for('logout') }}" class="btn btn-clear">🔒 Cerrar sesión</a>
+                
+                <!-- --- CORRECCIÓN: Usar un formulario para el logout --- -->
+                <form action="{{ url_for('logout') }}" method="post" style="display: inline-block; margin: 0; padding: 0;">
+                    <button type="submit" class="btn btn-clear">🔒 Cerrar sesión</button>
+                </form>
             </nav>
         </header>
 
@@ -190,7 +205,6 @@
                         <p>No tienes firmas registradas aún. Ve a <a href="{{ url_for('index') }}">Digitalizador</a> para crear una.</p>
                     {% endfor %}
                 </div>
-                <div id="dashboard-status-text" class="status-message"></div>
             </section>
 
             <section class="document-signing-section">
@@ -205,8 +219,8 @@
 
                 <div id="document-preview-container">
                     <p>Carga un documento para previsualizarlo aquí.</p>
-                    <img id="signature-to-apply" src="" alt="Firma a aplicar">
                 </div>
+                 <div id="dashboard-status-text" class="status-message"></div>
             </section>
         </div>
 
@@ -214,6 +228,8 @@
             <p>&copy; 2025 Digitalizador de Firmas. Todos los derechos reservados.</p>
         </footer>
     </div>
+    
+    <img id="signature-to-apply" src="" alt="Firma a aplicar">
 
     <script src="{{ url_for('static', filename='js/dashboard-logic.js') }}"></script>
 </body>
