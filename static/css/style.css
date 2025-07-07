@@ -583,3 +583,11 @@ body::before {
     transform: translateY(0);
 
 }
+
+.options-nav {
+  display: flex;            
+  justify-content: center;  
+  align-items: center;      
+  gap: 20px;                
+  flex-wrap: wrap;          
+}
