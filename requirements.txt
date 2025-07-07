@@ -2,3 +2,7 @@ Flask
 gunicorn
 flask_login
 supabase
+flask_sqlalchemy
+Pillow
+PyMuPDF
+python-dotenv

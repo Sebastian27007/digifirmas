@@ -18,23 +18,16 @@
         <header class="header animate-on-scroll">
             <h1><i class="fas fa-signature"></i> DigiFiremas</h1>
             <p class="subtitle">Digitalización Profesional de Firmas</p>
+            <nav class="options-nav">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-upload">🗂️ Ir a Firmar Documentos</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-clear">🔒 Cerrar Sesión</a>
+            </nav>
         </header>
 
         <main class="main-content">
-            <section class="upload-section animate-on-scroll interactive-element">
-                <h2><i class="fas fa-file-alt"></i> Paso 1: Sube el Documento a Firmar</h2>
-                <div class="file-input-container">
-                    <input type="file" id="document-input" accept=".pdf,image/*">
-                    <label for="document-input" class="file-input-label">
-                        <i class="fas fa-cloud-upload-alt"></i> Seleccionar documento
-                    </label>
-                </div>
-            </section>
-
-            <div class="section-divider"></div>
-
             <section class="signature-section animate-on-scroll interactive-element">
-                <h2><i class="fas fa-paint-brush"></i> Paso 2: Proporciona tu Firma</h2>
+                <h2><i class="fas fa-paint-brush"></i> Paso 1: Crea o Carga tu Firma</h2>
+                <p class="instruction">Dibuja tu firma en el recuadro o sube una imagen existente. Luego, **guarda tu firma para reutilizarla** o úsala para subir un documento al instante.</p>
                 
                 <div class="canvas-container">
                     <canvas id="signature-canvas" width="600" height="250"></canvas>
@@ -50,12 +43,13 @@
                     <button id="prepare-canvas-btn" class="btn btn-secondary">
                         <i class="fas fa-check"></i> Usar Firma Dibujada
                     </button>
+                    <button id="save-signature-btn" class="btn btn-upload">💾 Guardar esta Firma</button>
                 </div>
 
                 <hr style="margin: 20px 0;">
 
                 <div class="upload-form">
-                     <label for="file-input">O selecciona un archivo de firma:</label>
+                     <label for="file-input">O selecciona un archivo de firma existente:</label>
                      <div class="file-input-container">
                         <input type="file" id="file-input" accept="image/*">
                          <label for="file-input" class="file-input-label">
@@ -68,9 +62,19 @@
             <div class="section-divider"></div>
 
             <section class="final-upload-section animate-on-scroll">
-                <h2><i class="fas fa-paper-plane"></i> Paso 3: Enviar Todo</h2>
+                <h2><i class="fas fa-file-alt"></i> Paso 2: Subir Documento a Asociar</h2>
+                <p class="instruction">Selecciona el documento (PDF o imagen) y súbelo junto con la firma que acabas de preparar o cargar. Esta acción **no aplica la firma visiblemente**, solo los sube asociados.</p>
+                <div class="file-input-container">
+                    <input type="file" id="document-input" accept=".pdf,image/*">
+                    <label for="document-input" class="file-input-label">
+                        <i class="fas fa-cloud-upload-alt"></i> Seleccionar documento
+                    </label>
+                </div>
+                <p style="margin-top: 15px; color: #7f8c8d; font-style: italic;">
+                    *Nota: Para aplicar visualmente una firma a un documento y guardarlo como "firmado", por favor, ve al <a href="{{ url_for('dashboard') }}">Dashboard de Firmas</a>.
+                </p>
                 <button id="final-upload-btn" class="btn btn-upload">
-                    <i class="fas fa-arrow-circle-up"></i> Subir Documento y Firma
+                    <i class="fas fa-arrow-circle-up"></i> Subir Documento y Firma Asociada
                 </button>
                 <p id="status-text" class="status-message" role="alert">Estado: Esperando firma...</p>
             </section>

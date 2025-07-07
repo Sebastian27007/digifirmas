@@ -2,25 +2,363 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Panel de Usuario</title>
+    <title>Panel de Usuario - Firmar Documento</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Estilos específicos para el dashboard */
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        @media (min-width: 992px) { /* Ajustado para tablets grandes y escritorios */
+            .dashboard-container {
+                grid-template-columns: 300px 1fr; /* Columna de firmas con ancho fijo */
+            }
+        }
+
+        .saved-signatures-section, .document-signing-section, .signed-documents-management-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: var(--shadow-medium);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeInUp 0.8s ease-out;
+            margin-top: 30px;
+        }
+        
+        .grid-full-width {
+            grid-column: 1 / -1; /* Ocupa todo el ancho en la cuadrícula */
+        }
+
+        .saved-signatures-section h2, .document-signing-section h2, .signed-documents-management-section h2 {
+            text-align: center;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+        .saved-signatures-section h2::before { content: '✨'; margin-right: 10px; }
+        .document-signing-section h2::before { content: '🖋️'; margin-right: 10px; }
+        .signed-documents-management-section h2::before { content: '📂'; margin-right: 10px; }
+
+
+        .signature-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .signature-item {
+            border: 2px solid transparent;
+            border-radius: 10px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .signature-item:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-light);
+        }
+
+        .signature-item.selected {
+            border-color: var(--success-color);
+            box-shadow: 0 0 0 3px var(--success-color);
+            background-color: rgba(76, 175, 80, 0.05);
+        }
+
+        .signature-item img {
+            max-width: 120px;
+            height: auto;
+            display: block;
+            margin: 0 auto 10px auto;
+            border-radius: 5px;
+            background-color: #f8f8f8;
+            padding: 5px;
+        }
+
+        .document-upload-area {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        #document-preview-container {
+            border: 2px dashed #ccc;
+            border-radius: 15px;
+            width: 100%;
+            min-height: 500px; 
+            height: 70vh;
+            position: relative; 
+            margin: 20px auto;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #document-preview-container .document-preview-content {
+            width: 100%;
+            height: 100%;
+        }
+
+        #document-preview-container img.document-preview-content {
+            object-fit: scale-down;
+        }
+        
+        #document-preview-container iframe.document-preview-content {
+            border: none;
+        }
+
+        #signature-to-apply {
+            position: absolute;
+            cursor: grab;
+            display: none; 
+            max-width: 150px; 
+            height: auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            border: 2px dashed var(--accent-color);
+            transition: border-color 0.2s ease;
+            z-index: 10; 
+        }
+        #signature-to-apply:active {
+            cursor: grabbing;
+        }
+
+        .btn-dashboard {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all var(--animation-speed) cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            min-width: 140px;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: var(--shadow-light);
+            margin: 10px;
+        }
+        .btn-dashboard:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: var(--shadow-heavy);
+        }
+        .btn-dashboard::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+        .btn-dashboard:hover::before {
+            left: 100%;
+        }
+        
+        #dashboard-status-text a {
+            color: white;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+         #dashboard-status-text a:hover {
+            text-decoration: none;
+        }
+        
+        /* --- ESTILOS PARA LA GESTIÓN DE DOCUMENTOS --- */
+        .signed-document-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            background: #fafafa;
+            transition: all 0.3s ease;
+        }
+        .signed-document-item:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-light);
+        }
+        .document-info {
+            font-size: 1.1rem;
+            color: var(--dark-color);
+        }
+        .document-info small {
+            display: block;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        .document-actions .btn-action {
+            text-decoration: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-preview { background: var(--success-color); }
+        .btn-delete { background: var(--danger-color); }
+        .btn-action:hover { opacity: 0.8; }
+
+        /* --- NUEVOS ESTILOS PARA EL MODAL DE VISTA PREVIA --- */
+        #preview-modal {
+            display: none; /* Oculto por defecto */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 900px;
+            height: 85%;
+            border-radius: 15px;
+            box-shadow: var(--shadow-heavy);
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        #modal-title {
+            font-size: 1.5rem;
+            color: var(--dark-color);
+        }
+        #modal-close-btn {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #modal-close-btn:hover,
+        #modal-close-btn:focus {
+            color: black;
+            text-decoration: none;
+        }
+        #preview-area {
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        #preview-area iframe, #preview-area img {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+    </style>
 </head>
 <body>
-    <h1>Bienvenido, {{ username }}</h1>
+    <div class="container">
+        <header class="header">
+            <h1>Bienvenido, {{ username }}</h1>
+            <p class="subtitle">Panel de Control de Firmas y Documentos</p>
+            <nav class="options-nav">
+                <a href="{{ url_for('index') }}" class="btn btn-upload">✍️ Digitalizar Nueva Firma</a>
+                
+                <form action="{{ url_for('logout') }}" method="post" style="display: inline-block; margin: 0; padding: 0;">
+                    <button type="submit" class="btn btn-clear">🔒 Cerrar sesión</button>
+                </form>
+            </nav>
+        </header>
 
-    <h2>Tus Firmas</h2>
-    <ul>
-        {% for firma in firmas %}
-            <li><img src="{{ url_for('static', filename='uploads/firmas/' + firma) }}" alt="Firma" width="200"></li>
-        {% else %}
-            <li>No tienes firmas registradas aún.</li>
-        {% endfor %}
-    </ul>
+        <div class="dashboard-container">
+            <section class="saved-signatures-section">
+                <h2>Tus Firmas Guardadas</h2>
+                <p class="instruction">Selecciona una firma para usarla en un documento:</p>
+                <div class="signature-list">
+                    {% for firma_url in firmas %}
+                        <div class="signature-item" data-signature-url="{{ firma_url }}">
+                            <img src="{{ firma_url }}" alt="Firma Guardada">
+                            <span>Firma {{ loop.index }}</span>
+                        </div>
+                    {% else %}
+                        <p>No tienes firmas registradas aún. Ve a <a href="{{ url_for('index') }}">Digitalizador</a> para crear una.</p>
+                    {% endfor %}
+                </div>
+            </section>
 
-    <h2>Opciones</h2>
-    <ul>
-        <li><a href="/">Ir al Digitalizador</a></li>
-        <li><a href="/logout">Cerrar sesión</a></li>
-    </ul>
+            <section class="document-signing-section">
+                <h2>Firmar un Documento Existente</h2>
+                <p class="instruction">1. Carga un documento (imagen o PDF), 2. Selecciona tu firma a la izquierda y arrástrala.</p>
+                
+                <div class="document-upload-area">
+                    <input type="file" id="document-to-sign-input" accept=".pdf,image/*" class="btn-dashboard">
+                    <button id="load-document-btn" class="btn-dashboard">Cargar Documento</button>
+                    <button id="save-signed-document-btn" class="btn-dashboard" style="display:none;">✅ Guardar Documento Firmado</button>
+                </div>
+
+                <div id="document-preview-container">
+                    <p>Carga un documento para previsualizarlo aquí.</p>
+                </div>
+                 <div id="dashboard-status-text" class="status-message"></div>
+            </section>
+            
+            <section class="signed-documents-management-section grid-full-width">
+                <h2>Mis Documentos Firmados</h2>
+                <p class="instruction">Aquí puedes ver, descargar y eliminar los documentos que ya has firmado.</p>
+                <div id="signed-documents-list">
+                    </div>
+            </section>
+            
+        </div>
+
+        <footer class="footer">
+            <p>&copy; 2025 Digitalizador de Firmas. Todos los derechos reservados.</p>
+        </footer>
+    </div>
+    
+    <img id="signature-to-apply" src="" alt="Firma a aplicar">
+
+    <div id="preview-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Vista Previa</h2>
+                <span id="modal-close-btn">&times;</span>
+            </div>
+            <div id="preview-area">
+                </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard-logic.js') }}"></script>
 </body>
 </html>
