@@ -172,6 +172,7 @@ def sign_existing_document():
         return jsonify({'error': 'Faltan datos para firmar el documento'}), 400
 
     document_file = request.files['document_file']
+    original_filename = secure_filename(document_file.filename)
     signature_url = request.form['signature_url']
     
     pos_x_str = request.form.get('position_x', '0px').replace('px', '')
@@ -197,8 +198,10 @@ def sign_existing_document():
         return jsonify({'error': f'No se encontró el archivo de la firma: {signature_filename}'}), 404
 
     try:
+        user_id = session['user']['id']
         doc_stream = document_file.read()
-        output_filename = f"firmado_{secure_filename(document_file.filename)}"
+        output_filename = f"firmado_{uuid.uuid4().hex[:8]}_{original_filename}"
+        output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
         
         if document_file.mimetype == 'application/pdf':
             pdf_document = fitz.open(stream=doc_stream, filetype="pdf")
@@ -207,50 +210,33 @@ def sign_existing_document():
             page_width = page.rect.width
             page_height = page.rect.height
 
-            # --- LÓGICA DE CÁLCULO MEJORADA ---
-            # Determina la escala real usada por el navegador para ajustar el PDF en el preview
             scale = min(preview_width / page_width, preview_height / page_height)
-
-            # Calcula el tamaño del PDF renderizado en la pantalla
             rendered_width = page_width * scale
             rendered_height = page_height * scale
-
-            # Calcula el espacio vacío (letterboxing) alrededor del PDF
             offset_x = (preview_width - rendered_width) / 2
             offset_y = (preview_height - rendered_height) / 2
-
-            # Ajusta la posición del clic para que sea relativa al PDF renderizado, no al contenedor
             relative_x = pos_x - offset_x
             relative_y = pos_y - offset_y
-
-            # Convierte las coordenadas ajustadas de la pantalla a las coordenadas del PDF
             pdf_x = relative_x / scale
             pdf_y = relative_y / scale
-            
-            # Convierte el ancho de la firma a las coordenadas del PDF
             pdf_sig_width = sig_width / scale
             
             signature_image = Image.open(signature_path)
             aspect_ratio = signature_image.height / signature_image.width
             pdf_sig_height = pdf_sig_width * aspect_ratio
             
-            # Crea el rectángulo final en las coordenadas del PDF
             sig_rect = fitz.Rect(pdf_x, pdf_y, pdf_x + pdf_sig_width, pdf_y + pdf_sig_height)
-            
             page.insert_image(sig_rect, filename=signature_path)
             
-            output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
             pdf_document.save(output_path)
             pdf_document.close()
 
         elif document_file.mimetype.startswith('image/'):
-            # La lógica para imágenes puede seguir un enfoque similar si es necesario
             doc_image = Image.open(io.BytesIO(doc_stream)).convert("RGBA")
             signature_image = Image.open(signature_path).convert("RGBA")
 
             scale_x = doc_image.width / preview_width
             scale_y = doc_image.height / preview_height
-
             scaled_sig_width = int(sig_width * scale_x)
             aspect_ratio = signature_image.height / signature_image.width
             scaled_sig_height = int(scaled_sig_width * aspect_ratio)
@@ -260,12 +246,18 @@ def sign_existing_document():
             scaled_y = int(pos_y * scale_y)
 
             doc_image.paste(signature_image, (scaled_x, scaled_y), signature_image)
-
-            output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
             doc_image.save(output_path, "PNG")
 
         else:
             return jsonify({'error': 'Tipo de archivo no soportado para firma visual.'}), 415
+
+        # --- NUEVO: Registrar el documento firmado en la base de datos ---
+        supabase.table('signed_documents').insert({
+            'supabase_user_id': user_id,
+            'original_filename': original_filename,
+            'signed_filename': output_filename,
+            'local_filepath': output_path
+        }).execute()
 
         download_url = url_for('serve_upload', filename=output_filename, _external=True)
         return jsonify({
@@ -276,6 +268,57 @@ def sign_existing_document():
     except Exception as e:
         print(f"ERROR DETALLADO AL FIRMAR: {e}")
         return jsonify({'error': f'Error al procesar el documento: {str(e)}'}), 500
+
+# --- NUEVAS RUTAS PARA GESTIÓN DE DOCUMENTOS ---
+@app.route('/get_signed_documents', methods=['GET'])
+def get_signed_documents():
+    if 'user' not in session:
+        return jsonify({'error': 'Usuario no autenticado'}), 401
+    
+    user_id = session['user']['id']
+    try:
+        response = supabase.table('signed_documents').select('id, original_filename, signed_filename, created_at').eq('supabase_user_id', user_id).order('created_at', desc=True).execute()
+        documents = response.data
+        for doc in documents:
+            doc['url'] = url_for('serve_upload', filename=doc['signed_filename'])
+        return jsonify(documents), 200
+    except Exception as e:
+        print(f"ERROR AL OBTENER DOCUMENTOS: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/delete_document', methods=['POST'])
+def delete_document():
+    if 'user' not in session:
+        return jsonify({'error': 'Usuario no autenticado'}), 401
+    
+    data = request.get_json()
+    doc_id = data.get('id')
+    signed_filename = data.get('filename')
+    user_id = session['user']['id']
+
+    if not doc_id or not signed_filename:
+        return jsonify({'error': 'Datos incompletos'}), 400
+
+    try:
+        # 1. Verificar propiedad y obtener registro
+        record = supabase.table('signed_documents').select('id').eq('id', doc_id).eq('supabase_user_id', user_id).single().execute()
+
+        if not record.data:
+            return jsonify({'error': 'Documento no encontrado o no tienes permiso'}), 404
+
+        # 2. Eliminar de Supabase
+        supabase.table('signed_documents').delete().eq('id', doc_id).execute()
+
+        # 3. Eliminar archivo del servidor
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], signed_filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        return jsonify({'message': 'Documento eliminado con éxito'}), 200
+
+    except Exception as e:
+        print(f"ERROR AL ELIMINAR DOCUMENTO: {e}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

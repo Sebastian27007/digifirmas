@@ -18,7 +18,7 @@
             }
         }
 
-        .saved-signatures-section, .document-signing-section {
+        .saved-signatures-section, .document-signing-section, .signed-documents-management-section {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             padding: 40px;
@@ -26,9 +26,14 @@
             box-shadow: var(--shadow-medium);
             border: 1px solid rgba(255, 255, 255, 0.2);
             animation: fadeInUp 0.8s ease-out;
+            margin-top: 30px;
+        }
+        
+        .grid-full-width {
+            grid-column: 1 / -1; /* Ocupa todo el ancho en la cuadrícula */
         }
 
-        .saved-signatures-section h2, .document-signing-section h2 {
+        .saved-signatures-section h2, .document-signing-section h2, .signed-documents-management-section h2 {
             text-align: center;
             background: var(--gradient-primary);
             -webkit-background-clip: text;
@@ -40,6 +45,7 @@
         }
         .saved-signatures-section h2::before { content: '✨'; margin-right: 10px; }
         .document-signing-section h2::before { content: '🖋️'; margin-right: 10px; }
+        .signed-documents-management-section h2::before { content: '📂'; margin-right: 10px; }
 
 
         .signature-list {
@@ -173,6 +179,110 @@
          #dashboard-status-text a:hover {
             text-decoration: none;
         }
+        
+        /* --- ESTILOS PARA LA GESTIÓN DE DOCUMENTOS --- */
+        .signed-document-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            background: #fafafa;
+            transition: all 0.3s ease;
+        }
+        .signed-document-item:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-light);
+        }
+        .document-info {
+            font-size: 1.1rem;
+            color: var(--dark-color);
+        }
+        .document-info small {
+            display: block;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        .document-actions .btn-action {
+            text-decoration: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-preview { background: var(--success-color); }
+        .btn-delete { background: var(--danger-color); }
+        .btn-action:hover { opacity: 0.8; }
+
+        /* --- NUEVOS ESTILOS PARA EL MODAL DE VISTA PREVIA --- */
+        #preview-modal {
+            display: none; /* Oculto por defecto */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 900px;
+            height: 85%;
+            border-radius: 15px;
+            box-shadow: var(--shadow-heavy);
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        #modal-title {
+            font-size: 1.5rem;
+            color: var(--dark-color);
+        }
+        #modal-close-btn {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #modal-close-btn:hover,
+        #modal-close-btn:focus {
+            color: black;
+            text-decoration: none;
+        }
+        #preview-area {
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        #preview-area iframe, #preview-area img {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
 
     </style>
 </head>
@@ -184,7 +294,6 @@
             <nav class="options-nav">
                 <a href="{{ url_for('index') }}" class="btn btn-upload">✍️ Digitalizar Nueva Firma</a>
                 
-                <!-- --- CORRECCIÓN: Usar un formulario para el logout --- -->
                 <form action="{{ url_for('logout') }}" method="post" style="display: inline-block; margin: 0; padding: 0;">
                     <button type="submit" class="btn btn-clear">🔒 Cerrar sesión</button>
                 </form>
@@ -222,6 +331,14 @@
                 </div>
                  <div id="dashboard-status-text" class="status-message"></div>
             </section>
+            
+            <section class="signed-documents-management-section grid-full-width">
+                <h2>Mis Documentos Firmados</h2>
+                <p class="instruction">Aquí puedes ver, descargar y eliminar los documentos que ya has firmado.</p>
+                <div id="signed-documents-list">
+                    </div>
+            </section>
+            
         </div>
 
         <footer class="footer">
@@ -230,6 +347,17 @@
     </div>
     
     <img id="signature-to-apply" src="" alt="Firma a aplicar">
+
+    <div id="preview-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Vista Previa</h2>
+                <span id="modal-close-btn">&times;</span>
+            </div>
+            <div id="preview-area">
+                </div>
+        </div>
+    </div>
 
     <script src="{{ url_for('static', filename='js/dashboard-logic.js') }}"></script>
 </body>
