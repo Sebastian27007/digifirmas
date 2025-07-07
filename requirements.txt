@@ -5,3 +5,4 @@ supabase
 flask_sqlalchemy
 Pillow
 PyMuPDF
+python-dotenv
