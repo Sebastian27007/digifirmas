@@ -13,7 +13,7 @@ DigiFirmas es una aplicación web que permite capturar, almacenar y gestionar fi
 - Asocia firmas a documentos específicos.
 - Guarda las firmas digitalmente en la base de datos.
 - Genera documentos PDF firmados.
-- Seguridad básica con marcas de tiempo y registro de IP.
+
 
 ---
 
