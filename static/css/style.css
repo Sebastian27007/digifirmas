@@ -310,7 +310,6 @@ body::before {
     font-size: 1rem;
     cursor: pointer;
     font-weight: 600;
-    transition: all var(--animation-speed) cubic-bezier(0.175, 0.885, 0.32, 1.275);
     min-width: 140px;
     position: relative;
     overflow: hidden;
@@ -339,9 +338,7 @@ body::before {
     box-shadow: var(--shadow-heavy);
 }
 
-.btn:active {
-    transform: translateY(-1px) scale(1.02);
-}
+
 
 .btn-clear {
     background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);

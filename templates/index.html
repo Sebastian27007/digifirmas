@@ -19,6 +19,8 @@
             <h1><i class="fas fa-signature"></i> DigiFiremas</h1>
             <p class="subtitle">Digitalización Profesional de Firmas</p>
             <nav class="options-nav">
+                <br> 
+                     <br> 
                 <a href="{{ url_for('dashboard') }}" class="btn btn-upload">🗂️ Ir a Firmar Documentos</a>
                 <a href="{{ url_for('logout') }}" class="btn btn-clear">🔒 Cerrar Sesión</a>
             </nav>
@@ -61,23 +63,6 @@
 
             <div class="section-divider"></div>
 
-            <section class="final-upload-section animate-on-scroll">
-                <h2><i class="fas fa-file-alt"></i> Paso 2: Subir Documento a Asociar</h2>
-                <p class="instruction">Selecciona el documento (PDF o imagen) y súbelo junto con la firma que acabas de preparar o cargar. Esta acción **no aplica la firma visiblemente**, solo los sube asociados.</p>
-                <div class="file-input-container">
-                    <input type="file" id="document-input" accept=".pdf,image/*">
-                    <label for="document-input" class="file-input-label">
-                        <i class="fas fa-cloud-upload-alt"></i> Seleccionar documento
-                    </label>
-                </div>
-                <p style="margin-top: 15px; color: #7f8c8d; font-style: italic;">
-                    *Nota: Para aplicar visualmente una firma a un documento y guardarlo como "firmado", por favor, ve al <a href="{{ url_for('dashboard') }}">Dashboard de Firmas</a>.
-                </p>
-                <button id="final-upload-btn" class="btn btn-upload">
-                    <i class="fas fa-arrow-circle-up"></i> Subir Documento y Firma Asociada
-                </button>
-                <p id="status-text" class="status-message" role="alert">Estado: Esperando firma...</p>
-            </section>
         </main>
 
         <footer class="footer animate-on-scroll">
