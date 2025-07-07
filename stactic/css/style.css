@@ -584,3 +584,53 @@ body::before {
 .interactive-element:active {
     transform: translateY(0);
 }
+/* --- ESTILOS ADICIONALES PARA FORMULARIOS --- */
+
+.form-group {
+    width: 100%;
+    max-width: 400px; /* Limita el ancho del campo */
+    margin-bottom: 20px;
+    text-align: left; /* Alinea el label a la izquierda */
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--dark-color);
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.form-group label i {
+    margin-right: 8px;
+    color: var(--primary-color);
+    width: 15px; /* Alinea los iconos */
+    text-align: center;
+}
+
+.form-control {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all var(--animation-speed) ease;
+    background: #fdfdfd;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.3); /* Usa el efecto 'glow' que tienes */
+}
+
+.instruction a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.instruction a:hover {
+    text-decoration: underline;
+    color: var(--secondary-color);
+}
