@@ -28,8 +28,14 @@ DigiFirmas es una aplicación web que permite capturar, almacenar y gestionar fi
 
 ## Instalación y configuración
 
-1.  **Clona este repositorio.**
-2.  **Enlace a la aplicación:** [https://digifirmas-1.onrender.com](https://digifirmas-1.onrender.com)
-3.  **Credenciales de prueba:**
+1.  **Enlace a la aplicación:** [https://digifirmas-1.onrender.com](https://digifirmas-1.onrender.com)
+2.  **Credenciales de prueba:**
     -   **Usuario:** `usuario@admin`
     -   **Contraseña:** `user123`
+3.  **Flujo de uso recomendado:**
+    -   En la página principal, dibuja tu firma en el lienzo.
+    -   Haz clic en el botón azul **"Guardar esta Firma"** 💾.
+    -   Navega al panel de control con el botón **"Ir a Firmar Documentos"** 🗂️.
+    -   Carga el documento que deseas firmar.
+    -   Selecciona la firma que guardaste, arrástrala sobre el documento y haz clic en **"Guardar Documento Firmado"** ✅.
+    -   El documento final aparecerá en la lista en la parte inferior de la página.
