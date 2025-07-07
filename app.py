@@ -1,10 +1,11 @@
 import os
 import uuid
+import base64
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from supabase import create_client, Client
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 # --- Importaciones para la manipulación de PDF e imágenes ---
 import fitz  # PyMuPDF
@@ -16,7 +17,10 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'secreto_super_seguro_por_defecto')
+
+# Configuración para que la sesión sea más duradera
 app.permanent_session_lifetime = timedelta(minutes=60)
+
 
 # --- CONFIGURACIÓN DE CARPETA DE SUBIDAS ---
 UPLOAD_FOLDER = 'instance/uploads'
@@ -54,7 +58,7 @@ def register():
             return redirect(url_for('login'))
         except Exception as e:
             print(f"ERROR DETALLADO DE REGISTRO: {e}")
-            flash(f"Error en el registro: Es posible que el usuario o email ya existan.", "error")
+            flash(f"Error en el registro. Por favor, revisa los datos.", "error")
             return redirect(url_for('register'))
             
     return render_template('register.html')
@@ -74,7 +78,7 @@ def login():
             return redirect(url_for('dashboard'))
         except Exception as e:
             print(f"ERROR DETALLADO DE LOGIN: {e}")
-            flash("Credenciales incorrectas.", "error")
+            flash(f"Credenciales incorrectas.", "error")
             return redirect(url_for('login'))
 
     return render_template('login.html')
@@ -195,7 +199,6 @@ def sign_existing_document():
 
     try:
         user_id = session['user']['id']
-        username = session['username']
         doc_stream = document_file.read()
         output_filename = f"firmado_{uuid.uuid4().hex[:8]}_{original_filename}"
         output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
@@ -203,8 +206,10 @@ def sign_existing_document():
         if document_file.mimetype == 'application/pdf':
             pdf_document = fitz.open(stream=doc_stream, filetype="pdf")
             page = pdf_document[0]
+            
             page_width = page.rect.width
             page_height = page.rect.height
+
             scale = min(preview_width / page_width, preview_height / page_height)
             rendered_width = page_width * scale
             rendered_height = page_height * scale
@@ -222,51 +227,37 @@ def sign_existing_document():
             
             sig_rect = fitz.Rect(pdf_x, pdf_y, pdf_x + pdf_sig_width, pdf_y + pdf_sig_height)
             page.insert_image(sig_rect, filename=signature_path)
+            
             pdf_document.save(output_path)
             pdf_document.close()
 
         elif document_file.mimetype.startswith('image/'):
             doc_image = Image.open(io.BytesIO(doc_stream)).convert("RGBA")
             signature_image = Image.open(signature_path).convert("RGBA")
+
             scale_x = doc_image.width / preview_width
             scale_y = doc_image.height / preview_height
             scaled_sig_width = int(sig_width * scale_x)
             aspect_ratio = signature_image.height / signature_image.width
             scaled_sig_height = int(scaled_sig_width * aspect_ratio)
             signature_image = signature_image.resize((scaled_sig_width, scaled_sig_height))
+            
             scaled_x = int(pos_x * scale_x)
             scaled_y = int(pos_y * scale_y)
+
             doc_image.paste(signature_image, (scaled_x, scaled_y), signature_image)
             doc_image.save(output_path, "PNG")
+
         else:
             return jsonify({'error': 'Tipo de archivo no soportado para firma visual.'}), 415
 
-        doc_record_response = supabase.table('signed_documents').insert({
+        # --- NUEVO: Registrar el documento firmado en la base de datos ---
+        supabase.table('signed_documents').insert({
             'supabase_user_id': user_id,
             'original_filename': original_filename,
             'signed_filename': output_filename,
             'local_filepath': output_path
         }).execute()
-        signed_document_id = doc_record_response.data[0]['id']
-
-        # --- INICIO: LÓGICA PARA LA PISTA DE AUDITORÍA ---
-        try:
-            audit_data = {
-                "user_id": user_id,
-                "username": username,
-                "action": "DOCUMENT_SIGNED",
-                "ip_address": request.headers.get('X-Forwarded-For', request.remote_addr),
-                "user_agent": request.user_agent.string,
-                "details": {
-                    "signed_document_id": signed_document_id,
-                    "signed_filename": output_filename,
-                    "signature_used": signature_filename
-                }
-            }
-            supabase.table('audit_trail').insert(audit_data).execute()
-        except Exception as audit_error:
-            print(f"ADVERTENCIA: Falló el guardado de la pista de auditoría. Error: {audit_error}")
-        # --- FIN DE LA LÓGICA DE AUDITORÍA ---
 
         download_url = url_for('serve_upload', filename=output_filename, _external=True)
         return jsonify({
@@ -283,6 +274,7 @@ def sign_existing_document():
 def get_signed_documents():
     if 'user' not in session:
         return jsonify({'error': 'Usuario no autenticado'}), 401
+    
     user_id = session['user']['id']
     try:
         response = supabase.table('signed_documents').select('id, original_filename, signed_filename, created_at').eq('supabase_user_id', user_id).order('created_at', desc=True).execute()
@@ -308,17 +300,22 @@ def delete_document():
         return jsonify({'error': 'Datos incompletos'}), 400
 
     try:
+        # 1. Verificar propiedad y obtener registro
         record = supabase.table('signed_documents').select('id').eq('id', doc_id).eq('supabase_user_id', user_id).single().execute()
+
         if not record.data:
             return jsonify({'error': 'Documento no encontrado o no tienes permiso'}), 404
 
+        # 2. Eliminar de Supabase
         supabase.table('signed_documents').delete().eq('id', doc_id).execute()
-        
+
+        # 3. Eliminar archivo del servidor
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], signed_filename)
         if os.path.exists(file_path):
             os.remove(file_path)
 
         return jsonify({'message': 'Documento eliminado con éxito'}), 200
+
     except Exception as e:
         print(f"ERROR AL ELIMINAR DOCUMENTO: {e}")
         return jsonify({'error': str(e)}), 500
