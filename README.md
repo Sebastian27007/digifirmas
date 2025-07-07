@@ -13,19 +13,29 @@ DigiFirmas es una aplicación web que permite capturar, almacenar y gestionar fi
 - Asocia firmas a documentos específicos.
 - Guarda las firmas digitalmente en la base de datos.
 - Genera documentos PDF firmados.
-- Seguridad básica con marcas de tiempo y registro de IP.
+
 
 ---
 
 ## Tecnologías usadas
 
-- **Frontend:** HTML, CSS, JavaScript y Canvas para la captura de firmas.
-- **Backend:** Flask (Python).
-- **Base de datos:** SQLite (prototipo, con opción a PostgreSQL).
-- **Otros:** Librerías para generación y manipulación de PDF.
+-   **Frontend:** HTML, CSS, JavaScript y Canvas para la captura de firmas.
+-   **Backend:** Flask (Python).
+-   **Base de datos:** Supabase (PostgreSQL).
+-   **Otros:** Librerías para generación y manipulación de PDF.
 
 ---
 
 ## Instalación y configuración
 
-1. Clona este repositorio:
+1.  **Enlace a la aplicación:** [https://digifirmas-1.onrender.com](https://digifirmas-1.onrender.com)
+2.  **Credenciales de prueba:**
+    -   **Usuario:** `usuario@admin`
+    -   **Contraseña:** `user123`
+3.  **Flujo de uso recomendado:**
+    -   En la página principal, dibuja tu firma en el lienzo.
+    -   Haz clic en el botón azul **"Guardar esta Firma"** 💾.
+    -   Navega al panel de control con el botón **"Ir a Firmar Documentos"** 🗂️.
+    -   Carga el documento que deseas firmar.
+    -   Selecciona la firma que guardaste, arrástrala sobre el documento y haz clic en **"Guardar Documento Firmado"** ✅.
+    -   El documento final aparecerá en la lista en la parte inferior de la página.
